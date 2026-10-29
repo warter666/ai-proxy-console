@@ -23,8 +23,11 @@
 ai-proxy-console/
 ├─ ai_hub.py / gateway_ui.py / gateway_ui.html   # 控制台 + 面板（入口，留根目录）
 ├─ gw_specs.py / agent_setup.py / onboard.py / env_check.py / daily_checkin.py
-├─ workbuddy-proxy.js / clients.example.json / install_checkin_task.ps1
+├─ workbuddy-proxy.js / install_checkin_task.ps1 # 网关适配器 / 签到计划任务
 ├─ *.bat / *.exe                                # 桌面入口（EXE 回落路径写死根目录）
+├─ config/
+│  └─ clients.example.json   # 本机客户端路径模板（实际用 clients.local.json，已 gitignore）
+├─ entry/                   # 一键启动 BAT（双击用；EXE 等价物编译产物在根）
 ├─ tools/
 │  ├─ launcher/    # EXE 启动器源码（Launcher.cs.template + build-launchers.ps1）
 │  ├─ doubao/      # 豆包辅助：sync / session / switch / 只读探针（自成一簇）
@@ -35,7 +38,8 @@ ai-proxy-console/
 ```
 
 > 入口脚本留在根目录是刻意设计：桌面 EXE 启动器和 `gateway_ui.py` /
-> `ai_hub.py` 都按“自身所在目录”定位同伴文件。其余独立脚本按用途收进 `tools/`。
+> `ai_hub.py` 都按“自身所在目录”定位同伴文件。其余独立脚本按用途收进 `tools/`、`
+> config/` 或 `entry/`。
 
 ## 从零搭建（新机器）
 
@@ -43,14 +47,44 @@ ai-proxy-console/
 
 1. **系统**：Windows 10/11，Python 3.10+，Node.js 22+（豆包同步用到全局 `WebSocket`），
    PowerShell 5.1。安装依赖：`pip install -r requirements.txt`。
-2. **引擎**：本地克隆 `autoclaw-switch`（独立仓库），路径写进环境变量
-   `A_SWITCH_REPO`；未设置时按相邻目录 `..\autoclaw-switch` 探测。
-3. **登客户端**：AutoClaw / WorkBuddy / Qoder / 豆包，至少登录你要用的那几家。
+2. **克隆本仓库**（控制台）：
+
+   ```bash
+   git clone https://github.com/warter666/ai-proxy-console.git
+   cd ai-proxy-console
+   pip install -r requirements.txt
+   ```
+
+3. **克隆引擎仓库 `autoclaw-switch`**（三路引擎 AutoClaw / Qoder / 豆包本体，独立仓库）。
+   它必须和本仓库**同级**（这样不设环境变量也能自动探测到），或设 `A_SWITCH_REPO` 指向它：
+
+   ```bash
+   # 在 ai-proxy-console 的同级目录执行（二选一）：
+   git clone https://github.com/warter666/autoclaw-switch.git
+
+   # 或者克隆到自定义位置后用环境变量声明：
+   git clone https://github.com/warter666/autoclaw-switch.git D:\my\autoclaw-switch
+   setx A_SWITCH_REPO "D:\my\autoclaw-switch"
+   ```
+
+   > 不设 `A_SWITCH_REPO` 时，控制台默认按 `..\autoclaw-switch` 探测（即本仓库的同级目录）。
+4. **登客户端**：AutoClaw / WorkBuddy / Qoder / 豆包，至少登录你要用的那几家。
    真实凭据只留在客户端和代理进程里，本仓库不含任何 key。
-4. **起面板**：`python gateway_ui.py`（或双击 `AI反代面板.bat`）。打开后点右上角
+5. **起面板**：`python gateway_ui.py`（或双击 `entry\AI反代面板.bat`）。打开后点右上角
    「一键接入」：补占位 token → 启动所需网关 → 写入 DSH / ZCode 配置 → 复检。
    Claude Code / Codex 在结果里给可复制片段。想无控制台闪窗可编译 EXE 启动器（可选，见下）。
-5. **自检**：面板「环境自检」逐项列出缺什么；某一路缺依赖不影响其他网关。
+6. **自检**：面板「环境自检」逐项列出缺什么；某一路缺依赖不影响其他网关。
+
+### 一行快速启动
+
+满足“已克隆 ai-proxy-console 与 autoclaw-switch 到同级目录、已装 Python/Node 依赖、客户端已登录”后，
+直接用仓库根目录的一条命令拉起全部网关并打开面板：
+
+```bash
+cd ai-proxy-console && python ai_hub.py start && python gateway_ui.py
+```
+
+> 只想要面板、网关手动起：直接 `python gateway_ui.py`（或双击 `entry\AI反代面板.bat`）。
 
 本机路径都可以用环境变量覆盖，不设时按默认探测：
 
@@ -69,7 +103,7 @@ ai-proxy-console/
 
 ## 快速开始
 
-    python gateway_ui.py        # 或双击 AI反代面板.bat
+    python gateway_ui.py        # 或双击 entry\AI反代面板.bat
 
 面板里有六块：
 
@@ -129,7 +163,7 @@ Claude Code / Codex 不自动改配置，只在结果里给可复制的片段。
     python ai_hub.py smoke all   # 推理冒烟
     python ai_hub.py list        # 列注册表
 
-桌面入口：`AI反代面板.exe` / `AI反代面板.bat` 打开可视面板（带单实例保护，重复打开只会聚焦已有窗口）。需要命令行菜单时运行 `python ai_hub.py menu`。
+桌面入口：`AI反代面板.exe` / `entry\AI反代面板.bat` 打开可视面板（带单实例保护，重复打开只会聚焦已有窗口）。需要命令行菜单时运行 `python ai_hub.py menu`。
 
 ## EXE 启动器（可选）
 
@@ -139,8 +173,8 @@ Claude Code / Codex 不自动改配置，只在结果里给可复制的片段。
 
 | EXE | 等价 BAT | 行为 |
 |---|---|---|
-| `AI反代面板.exe` | `AI反代面板.bat` | 无控制台，直接打开可视面板 |
-| `安装每日签到任务.exe` | `安装每日签到任务.bat` | 控制台注册计划任务（沿用当前时间，默认 09:00） |
+| `AI反代面板.exe` | `entry\AI反代面板.bat` | 无控制台，直接打开可视面板 |
+| `安装每日签到任务.exe` | `entry\安装每日签到任务.bat` | 控制台注册计划任务（沿用当前时间，默认 09:00） |
 | `<AGENTHUB_DIR>\scripts\agent-hub.exe` | `agent-hub.bat` | 控制台，参数透传给 `agent-hub.ps1`（AgentHub 仓库提供） |
 
 新克隆默认只有 `.bat` 和 `python gateway_ui.py` 两种入口，EXE 是本机编译产物（已 gitignore）。
@@ -241,7 +275,7 @@ DSH 走 `qoder/deepseek-flash` 时若出现「回答一半输出 `[assistant 请
 - 底部深色运行日志（启动/停止过程、错误原因）
 
 客户端路径不在仓库里：`gw_specs.py` 只保留可移植候选（如 Qoder 的 `%LOCALAPPDATA%` 路径），
-本机安装位置写在 `clients.local.json`（已 gitignore，格式见 `clients.example.json`）；
+本机安装位置写在 `clients.local.json`（已 gitignore，格式见 `config/clients.example.json`）；
 也可以在面板里点「添加客户端」用原生选择器挑 exe，写入 `clients.json`。
 签到用的消费版豆包走同一个文件的 `doubao_consumer`（或环境变量 `DOUBAO_CONSUMER_EXE`）。
 按顺序探测第一个存在的候选，找不到的按钮置灰，不会误报。
