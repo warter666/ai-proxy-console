@@ -1,0 +1,18 @@
+{
+  "_comment": "复制为 clients.local.json 后按本机安装位置填写；clients.local.json 已 gitignore，不会入库。",
+  "version": 1,
+  "overrides": {
+    "auto": ["D:\\Apps\\AutoClaw\\AutoClaw2.exe"],
+    "auto_intl": ["D:\\Apps\\AutoClaw-intl\\AutoClaw2.exe"],
+    "wb": ["D:\\Apps\\WorkBuddy\\WorkBuddy.exe"],
+    "qoder": [
+      "D:\\Apps\\Qoder CN\\Qoder CN.exe",
+      "%LOCALAPPDATA%\\Qoder CN\\Qoder CN Launcher\\Qoder CN Launcher.exe"
+    ],
+    "doubao": ["D:\\Apps\\DoubaoWork\\DoubaoWork.exe"],
+    "qoder_intl": ["%LOCALAPPDATA%\\Qoder\\Qoder Launcher\\Qoder Launcher.exe"],
+    "dsh": ["D:\\Apps\\DSH Desktop\\DSH Desktop.exe"],
+    "zcode": ["D:\\Apps\\ZCode\\ZCode.exe"],
+    "doubao_consumer": ["D:\\Apps\\Doubao\\app\\Doubao.exe"]
+  }
+}

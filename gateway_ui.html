@@ -1,0 +1,4866 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 反代面板</title>
+<style>
+  :root {
+    --paper: #E9EEF0;
+    --panel: #F6F7F3;
+    --ink: #122C34;
+    --ink-soft: #3D585E;
+    --muted: #6C8084;
+    --line: #B9C8CB;
+    --line-soft: #D5DEE0;
+    --orange: #C4481D;
+    --orange-dark: #963313;
+    --green: #176B4D;
+    --green-soft: #D9E9E1;
+    --red: #A63A29;
+    --amber: #A96B16;
+    --display: "Bahnschrift SemiCondensed", "Bahnschrift", "Microsoft YaHei UI", sans-serif;
+    --body: "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", sans-serif;
+    --mono: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { min-height: 100%; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 13.5px;
+    line-height: 1.45;
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(18, 44, 52, .045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(18, 44, 52, .045) 1px, transparent 1px);
+    background-size: 28px 28px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    border: 0;
+    background: none;
+  }
+
+  button:disabled { cursor: not-allowed; }
+
+  code, .mono { font-family: var(--mono); }
+
+  :focus-visible {
+    outline: 3px solid var(--orange);
+    outline-offset: 2px;
+  }
+
+  .shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 16px 20px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+  }
+
+  .masthead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    border-top: 4px solid var(--orange);
+    padding-top: 12px;
+  }
+
+  .kicker {
+    margin: 0 0 5px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    color: var(--ink-soft);
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--display);
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: .01em;
+  }
+
+  .brand-block { display: flex; align-items: center; gap: 15px; }
+
+  .pig-logo {
+    flex: 0 0 auto;
+    width: 52px;
+    height: 52px;
+    filter: drop-shadow(0 2px 0 rgba(18, 44, 52, .14));
+  }
+
+  .brand-ico { display: inline-flex; flex: 0 0 auto; }
+  .brand-ico svg { display: block; }
+
+  .lede {
+    margin: 6px 0 0;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 9px;
+    flex: 0 0 auto;
+  }
+
+  .meter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+
+  .meter-ticks { display: flex; gap: 4px; }
+
+  .meter-ticks i {
+    display: block;
+    width: 18px;
+    height: 7px;
+    background: var(--line);
+    border: 1px solid var(--ink-soft);
+  }
+
+  .meter-ticks i.on {
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  .meter b {
+    color: var(--ink);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .master { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+
+  /* 「全部签到」旁的定时入口：只显示当前时间，点开才是设置 */
+  .checkin-wrap { position: relative; display: flex; align-items: center; gap: 5px; }
+
+  .key-sched {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 32px;
+    padding: 5px 9px;
+    border-style: dashed;
+    box-shadow: none;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+
+  .key-sched b {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .key-sched .sched-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+
+  .key-sched.on .sched-dot { background: var(--green); }
+  .key-sched.off .sched-dot { background: var(--amber); }
+
+  .key-sched[aria-expanded="true"] {
+    background: #fff;
+    border-style: solid;
+    border-color: var(--ink-soft);
+  }
+
+  .checkin-pop {
+    position: absolute;
+    top: calc(100% + 7px);
+    right: 0;
+    z-index: 40;
+    width: 296px;
+    padding: 10px 11px;
+    border: 1.5px solid var(--ink);
+    border-radius: 5px;
+    background: #FBFBF7;
+    box-shadow: 4px 6px 0 rgba(18, 44, 52, .14);
+    text-align: left;
+  }
+
+  .checkin-pop[hidden] { display: none; }
+
+  .checkin-pop-head {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 7px;
+  }
+
+  .checkin-pop-head b { font-size: 12.5px; }
+  .checkin-pop-head .chip { margin-left: auto; }
+
+  .checkin-pop-row { display: flex; align-items: center; gap: 6px; }
+  .checkin-pop-row label { font-size: 11px; color: var(--muted); }
+  .checkin-pop-row .checkin-time { min-width: 0; flex: 1 1 auto; }
+
+  .checkin-pop-meta {
+    margin-top: 7px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .checkin-pop-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 7px;
+  }
+
+  .sched-link {
+    margin-left: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 10px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .sched-link:hover { color: #B4231A; }
+
+  .key {
+    min-height: 32px;
+    padding: 5px 12px;
+    border: 1.5px solid var(--ink);
+    border-radius: 3px;
+    background: var(--panel);
+    box-shadow: 0 2px 0 var(--ink);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    transition: background .12s, transform .08s, box-shadow .08s;
+  }
+
+  .key:hover:not(:disabled) { background: #fff; }
+
+  .key:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: none;
+  }
+
+  .key:disabled { opacity: .5; }
+
+  .key-primary {
+    background: var(--orange);
+    border-color: var(--orange-dark);
+    box-shadow: 0 2px 0 var(--orange-dark);
+    color: #FFF8F4;
+  }
+
+  .key-primary:hover:not(:disabled) { background: #D25526; }
+
+  .key-quiet {
+    background: transparent;
+    box-shadow: none;
+    border-color: var(--line);
+    color: var(--ink-soft);
+  }
+
+  .key-quiet:hover:not(:disabled) {
+    background: rgba(255, 255, 255, .65);
+    border-color: var(--ink-soft);
+  }
+
+  /* Qoder「面板」小胶囊：贴在「运行中」右侧，约常规按钮一半 */
+  .key-mini {
+    min-height: 20px;
+    padding: 0 7px;
+    border-width: 1px;
+    border-radius: 10px;
+    box-shadow: none;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 18px;
+    letter-spacing: .02em;
+    transition: background .12s, border-color .12s;
+  }
+
+  .key-mini:hover:not(:disabled) {
+    background: #fff;
+    border-color: var(--ink-soft);
+  }
+
+  .key-start {
+    background: var(--orange);
+    border-color: var(--orange-dark);
+    box-shadow: 0 2px 0 var(--orange-dark);
+    color: #FFF8F4;
+  }
+
+  .key-start:hover:not(:disabled) { background: #D25526; }
+
+  .key-stop {
+    background: transparent;
+    border-color: var(--red);
+    box-shadow: 0 2px 0 var(--red);
+    color: var(--red);
+  }
+
+  .key-stop:hover:not(:disabled) { background: #F7E6E2; }
+
+  .key.is-working::before {
+    content: "";
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 6px;
+    vertical-align: -1px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .offline {
+    display: none;
+    padding: 9px 13px;
+    border: 1.5px solid var(--orange);
+    background: #F8E7DC;
+    color: var(--orange-dark);
+    font-size: 12px;
+  }
+
+  .offline.show { display: block; }
+
+  main {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+  }
+
+  .rack {
+    border: 1.5px solid var(--ink);
+    border-radius: 5px;
+    background: var(--panel);
+    box-shadow: 5px 5px 0 rgba(18, 44, 52, .13);
+    overflow: hidden;
+  }
+
+  .channel {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr) 196px 152px;
+    align-items: center;
+    gap: 14px;
+    min-height: 84px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line);
+    border-left: 5px solid var(--line);
+    background: var(--panel);
+  }
+
+  .channel:last-child { border-bottom: 0; }
+
+  .channel.is-running { border-left-color: var(--green); }
+  .channel.is-busy { border-left-color: var(--orange); }
+  .channel.is-off { border-left-color: #93A6A9; }
+
+  .channel.is-busy { background: #FBFAF4; }
+
+  .port {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-right: 12px;
+    border-right: 1px dashed var(--line);
+    min-width: 0;
+  }
+
+  .port-number {
+    font-family: var(--display);
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: .015em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .port-proto {
+    margin-top: 5px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    line-height: 1.25;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+  }
+
+  .identity { min-width: 0; }
+
+  .name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  /* 「面板」+「运行中」组成右对齐槽：状态文字在各卡片保持同一 x，
+     小按钮紧贴其左侧，不占用右侧操作列 */
+  .state-slot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .state-slot .state { margin-left: 0; }
+
+  .name-row h2 {
+    margin: 0;
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: .01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    flex: 0 0 auto;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+
+  .lamp {
+    display: block;
+    width: 9px;
+    height: 9px;
+    border: 1.5px solid #8FA2A5;
+    border-radius: 50%;
+    background: transparent;
+  }
+
+  .is-running .state { color: var(--green); }
+  .is-running .lamp {
+    background: var(--green);
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px var(--green-soft);
+  }
+
+  .is-busy .state { color: var(--amber); }
+  .is-busy .lamp {
+    background: var(--amber);
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px #F1E4CB;
+    animation: blink 1.1s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .35; }
+  }
+
+  .note {
+    margin: 3px 0 0;
+    color: var(--ink-soft);
+    font-size: 11.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .channel-meta {
+    margin: 2px 0 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .token { min-width: 0; }
+
+  .label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--muted);
+    letter-spacing: .04em;
+  }
+
+  .token-value {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    min-width: 0;
+  }
+
+  .token-value code {
+    display: block;
+    min-width: 0;
+    padding: 3px 6px;
+    border: 1px dashed var(--line);
+    border-radius: 2px;
+    background: #E8EDEA;
+    color: var(--ink);
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .copy {
+    flex: 0 0 auto;
+    padding: 2px 3px;
+    color: var(--muted);
+    font-size: 10.5px;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+  }
+
+  .copy:hover { color: var(--orange); }
+
+  .row-actions {
+    display: grid;
+    grid-template-columns: 66px 66px;
+    gap: 7px;
+    justify-content: end;
+    align-items: stretch;
+  }
+
+  /* 签到重置说明独占第二行，不再挤占按钮列宽 —— 保证四张卡片按钮严格对齐 */
+  .row-actions .checkin-reset {
+    grid-column: 1 / -1;
+    margin-top: 0;
+    text-align: right;
+  }
+
+  .row-actions .key { min-width: 0; }
+
+  .key-checkin {
+    background: var(--green);
+    border-color: #0F4C37;
+    box-shadow: 0 2px 0 #0F4C37;
+    color: #F2FBF6;
+  }
+
+  .key-checkin:hover:not(:disabled) { background: #1E7E5B; }
+
+  .key-checkin[disabled] {
+    background: var(--panel);
+    border-color: var(--line);
+    box-shadow: none;
+    color: var(--muted);
+  }
+
+  .checkin-reset {
+    display: block;
+    margin-top: 4px;
+    font-size: 10px;
+    line-height: 1.2;
+    color: var(--muted);
+    letter-spacing: .2px;
+  }
+
+  .disclosure {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1.5px solid var(--line);
+    border-radius: 50%;
+    background: var(--panel);
+    box-shadow: none;
+    color: var(--ink-soft);
+    font-size: 12px;
+    line-height: 1;
+    display: inline-grid;
+    place-items: center;
+    transition: transform .16s ease, border-color .12s, background .12s;
+  }
+
+  .disclosure:hover:not(:disabled) {
+    border-color: var(--ink-soft);
+    background: #fff;
+  }
+
+  .channel.expanded .disclosure { transform: rotate(90deg); }
+
+  .drawer {
+    grid-column: 1 / -1;
+    display: none;
+    padding: 12px 14px 14px;
+    border-top: 1px dashed var(--line);
+    background: #F1F4F1;
+  }
+
+  .channel.expanded .drawer { display: block; }
+
+  .drawer-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .drawer-head h3 {
+    margin: 0;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: .02em;
+  }
+
+  .drawer-head .status-line {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-soft);
+  }
+
+  .acct-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+  }
+
+  .acct-table th, .acct-table td {
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--line-soft);
+    white-space: nowrap;
+  }
+
+  .acct-table th {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+
+  .acct-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .acct-table tr.live td:first-child { color: var(--green); font-weight: 600; }
+
+  /* 积分 / 临期状态胶囊 */
+  .chip {
+    display: inline-block;
+    padding: 1px 7px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 15px;
+    white-space: nowrap;
+  }
+
+  .chip-ok {
+    border-color: #B9DCC6;
+    background: #EAF6EF;
+    color: #1E7E5B;
+  }
+
+  .chip-warn {
+    border-color: #E9B7B0;
+    background: #FBEAE7;
+    color: #B4231A;
+  }
+
+  .chip-unknown {
+    border-color: var(--line);
+    background: #EEF2EF;
+    color: var(--muted);
+  }
+
+  .acct-sum {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin: 2px 2px 8px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-soft);
+  }
+
+  .acct-sum b {
+    font-family: var(--display);
+    font-size: 13px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .acct-table td.pts { font-variant-numeric: tabular-nums; }
+
+  .acct-table td.pts .zero { color: var(--muted); }
+
+  /* 统一账号表格：三个固定列（账号 / 额度·积分 / 状态），所有网关共用 */
+  .acct-unified th:nth-child(1) { width: 40%; }
+  .acct-unified th:nth-child(2) { width: 28%; text-align: right; }
+  .acct-unified th:nth-child(3) { width: 32%; }
+  .acct-unified td { vertical-align: middle; }
+  .acct-name { line-height: 1.35; }
+  .acct-sub { font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+  .acct-quota { white-space: nowrap; }
+  .quota-bar {
+    margin-top: 4px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, .07);
+    overflow: hidden;
+  }
+  .quota-bar i { display: block; height: 100%; border-radius: 3px; }
+  .acct-state { white-space: nowrap; }
+  .state-note { display: block; margin-top: 2px; font-size: 10px; color: var(--muted); }
+  .acct-note { margin: 0 2px 8px; font-size: 11px; opacity: .6; }
+
+  /* 机制说明（如 AutoClaw 的临期优先自动换号），比普通备注更值得看 */
+  .acct-note-key {
+    padding: 6px 9px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #F4F6F3;
+    color: var(--ink-soft);
+    opacity: 1;
+    line-height: 1.55;
+  }
+
+  /* 账号不一致等需要显眼提示的告警 */
+  .acct-alert {
+    margin: 0 2px 8px;
+    padding: 7px 10px;
+    border: 1px solid #E9B7B0;
+    border-radius: 8px;
+    background: #FBEAE7;
+    color: #B4231A;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  .alert-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 7px;
+  }
+
+  .alert-actions .key-mini { color: #B4231A; border-color: #E9B7B0; }
+
+  /* 行内行动按钮（豆包账号切换） */
+  .state-action { margin-top: 4px; }
+  .state-action .key-mini { min-height: 19px; padding: 0 7px; font-size: 10px; }
+  .acct-cur {
+    display: inline-block;
+    margin-top: 4px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--green, #46a758);
+    opacity: .8;
+  }
+
+  .acct-empty {
+    padding: 10px 4px;
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+
+  /* ---- Qoder 双区：出口切换条 / 分组行 / 导入弹窗 ---- */
+  .qoder-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0 2px 8px;
+  }
+
+  .qoder-bar .bar-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: .03em;
+  }
+
+  .qoder-bar .bar-hint {
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+
+  .qoder-bar .key-mini { margin-left: auto; }
+
+  .seg {
+    min-height: 20px;
+    padding: 0 9px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink-soft);
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  .seg b { margin-left: 4px; font-weight: 700; }
+
+  .seg.is-active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+
+  .seg:disabled { cursor: default; opacity: .75; }
+
+  .acct-table tr.acct-group td {
+    padding: 8px 8px 4px;
+    background: #F1F4EF;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-soft);
+    letter-spacing: .03em;
+  }
+
+  .acct-table tr.acct-group .grp-count {
+    margin-left: 8px;
+    color: var(--muted);
+  }
+
+  .acct-table tr.acct-group .grp-badge {
+    margin-left: 8px;
+    padding: 0 6px;
+    border-radius: 8px;
+    background: var(--green, #46a758);
+    color: #fff;
+    font-size: 9px;
+    letter-spacing: 0;
+  }
+
+  .qmodal-mask {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(20, 24, 20, .38);
+  }
+
+  .qmodal {
+    width: min(560px, calc(100vw - 48px));
+    max-height: min(74vh, 640px);
+    display: flex;
+    flex-direction: column;
+    background: var(--paper, #F6F7F3);
+    border: 1.5px solid var(--ink);
+    border-radius: 8px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, .24);
+  }
+
+  .qmodal-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 12px 14px 9px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .qmodal-head h3 { margin: 0; font-family: var(--display); font-size: 14px; }
+
+  .qmodal-head .q-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .qmodal-body { padding: 8px 14px 10px; overflow: auto; }
+
+  .qmodal-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ---- 一键接入向导 ---- */
+  .ob-modal {
+    width: min(680px, calc(100vw - 48px));
+    max-height: min(84vh, 760px);
+  }
+
+  .ob-label {
+    margin: 10px 0 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .05em;
+    color: var(--ink-soft);
+  }
+
+  .ob-label:first-child { margin-top: 2px; }
+
+  .ob-note { font-size: 11px; color: var(--muted); line-height: 1.55; margin: 2px 0 6px; }
+
+  .ob-issues {
+    border: 1px solid #E9B7B0;
+    background: #FBEDEA;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 11px;
+    color: #8C2F20;
+  }
+
+  .ob-issues ul { margin: 3px 0 0; padding-left: 16px; }
+  .ob-issues li { margin: 1px 0; }
+
+  .ob-gws { display: flex; flex-wrap: wrap; gap: 5px; }
+
+  .ob-gw {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border: 1px solid var(--line-soft);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .55);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-soft);
+  }
+
+  .ob-gw i { width: 7px; height: 7px; border-radius: 50%; background: #B7C3C4; }
+  .ob-gw.on i { background: var(--green); }
+  .ob-gw.opt { border-style: dashed; }
+
+  .ob-clients { display: flex; flex-direction: column; gap: 5px; }
+
+  .ob-client {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 8px 9px;
+    border: 1px solid var(--line-soft);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, .45);
+  }
+
+  .ob-client.is-dis { opacity: .55; }
+  .ob-client input { margin-top: 3px; }
+
+  .ob-cmain { flex: 1 1 auto; min-width: 0; }
+
+  .ob-cname { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12.5px; }
+
+  .ob-cmeta {
+    margin-top: 2px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+  }
+
+  .ob-cdetail { margin-top: 2px; font-size: 11px; color: var(--ink-soft); }
+
+  .ob-tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+
+  .ob-tag.manual { border-color: #D9C29A; color: #8A5A12; background: #FBF3E4; }
+
+  .ob-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 8px 2px;
+    border-bottom: 1px dashed var(--line-soft);
+  }
+
+  .ob-step:last-child { border-bottom: none; }
+
+  .ob-icon {
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    background: #fff;
+  }
+
+  .ob-icon.ok { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+  .ob-icon.warn { border-color: #D9A24A; color: var(--amber); background: #FBF1DF; }
+  .ob-icon.fail { border-color: var(--red); color: var(--red); background: #F9E3DE; }
+  .ob-icon.running { border-color: var(--orange); color: var(--orange); background: #FBE9E0; animation: ob-pulse 1s infinite; }
+
+  @keyframes ob-pulse { 50% { opacity: .4; } }
+
+  .ob-stepmain { flex: 1 1 auto; min-width: 0; }
+
+  .ob-steptitle { display: flex; align-items: baseline; gap: 8px; font-size: 12px; font-weight: 600; }
+  .ob-steptitle .mono { font-size: 9.5px; color: var(--muted); font-weight: 400; }
+
+  .ob-stepitems { margin-top: 3px; }
+
+  .ob-item { display: flex; gap: 7px; padding: 2px 0; font-size: 11px; color: var(--ink-soft); }
+  .ob-item .st { flex: 0 0 auto; font-family: var(--mono); font-size: 10px; }
+  .ob-item.ok .st { color: var(--green); }
+  .ob-item.warn .st { color: var(--amber); }
+  .ob-item.fail .st { color: var(--red); }
+  .ob-item.running .st { color: var(--orange); }
+  .ob-item.pending .st { color: var(--muted); }
+  .ob-item .msg { overflow-wrap: anywhere; }
+
+  .ob-okbox {
+    border: 1px solid #B9D8C8;
+    background: #E8F3EC;
+    color: var(--green);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    margin: 4px 0 8px;
+  }
+
+  .ob-badbox {
+    border: 1px solid #E9B7B0;
+    background: #FBEDEA;
+    color: #8C2F20;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    margin: 4px 0 8px;
+  }
+
+  .ob-snippet {
+    margin: 3px 0 7px;
+    padding: 7px 9px;
+    background: #EDF2F1;
+    border: 1px solid var(--line-soft);
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .ob-sum { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 6px 0 2px; font-size: 11.5px; }
+  .ob-sum b { font-family: var(--mono); }
+
+  .ob-foot-note { margin-right: auto; align-self: center; font-size: 10.5px; color: var(--muted); }
+
+  .qgroup-label {
+    margin: 9px 0 3px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-soft);
+    letter-spacing: .03em;
+  }
+
+  .qcand {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 7px 2px;
+    border-bottom: 1px dashed var(--line-soft);
+    font-size: 11.5px;
+    cursor: pointer;
+  }
+
+  .qcand:last-child { border-bottom: none; }
+  .qcand input { margin-top: 2px; }
+  .qcand .q-main { flex: 1 1 auto; min-width: 0; }
+  .qcand .q-name { font-weight: 600; }
+
+  .qcand .q-tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 8px;
+    background: #EEF2EF;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 400;
+  }
+
+  .qcand .q-meta {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .qcand.is-bad { opacity: .55; cursor: default; }
+
+  .drawer .meta-row {
+    margin-top: 8px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-soft);
+  }
+
+  .drawer .meta-row b { color: var(--ink); }
+
+  .apps {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--ink);
+    border-radius: 5px;
+    background: rgba(246, 247, 243, .82);
+  }
+
+  .apps-head {
+    flex: 0 0 auto;
+    padding-right: 14px;
+    border-right: 1px solid var(--line);
+  }
+
+  .apps-head h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .apps-head p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 10.5px;
+  }
+
+  /* 今日消耗：整块折叠；展开后才逐行显示各 agent */
+  .usage-sec {
+    border: 1.5px solid var(--ink);
+    border-radius: 5px;
+    background: rgba(246, 247, 243, .82);
+  }
+
+  .usage-sec-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: none;
+    color: var(--fg);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    user-select: none;
+    transition: background .12s;
+  }
+
+  .usage-sec-head:hover { background: rgba(127, 127, 127, .06); }
+
+  .usage-sec-head h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .usage-sec-sum {
+    display: flex;
+    gap: 16px;
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+
+  .usage-sec-sum b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  .usage-sec-body { display: none; padding: 0 12px 11px; }
+
+  .usage-sec.open .usage-sec-body { display: block; }
+
+  .usage-sec.open .usage-sec-head .chev { transform: rotate(90deg); }
+
+  .usage-sec-note {
+    margin: 0 0 6px;
+    color: var(--muted);
+    font-size: 10.5px;
+    line-height: 1.55;
+  }
+
+  /* 折叠区按使用频率分级：is-major 每日必用，is-minor 低频工具 */
+  .usage-sec.is-major .usage-sec-head { padding: 13px 14px; gap: 10px; }
+  .usage-sec.is-major .usage-sec-head h2 { font-size: 15px; }
+  .usage-sec.is-major .usage-sec-sum { font-size: 11.5px; }
+  .usage-sec.is-major .usage-sec-body { padding: 0 14px 13px; }
+
+  .usage-sec.is-minor {
+    border-width: 1px;
+    border-color: var(--line);
+    background: rgba(246, 247, 243, .55);
+  }
+
+  .usage-sec.is-minor .usage-sec-head { padding: 5px 10px; gap: 7px; }
+  .usage-sec.is-minor .usage-sec-head h2 {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .usage-sec.is-minor .usage-sec-sum { font-size: 9.5px; gap: 10px; }
+  .usage-sec.is-minor .chev { font-size: 8px; }
+  .usage-sec.is-minor .usage-sec-body { padding: 0 10px 9px; }
+  .usage-sec.is-minor .usage-sec-note { font-size: 10px; margin-bottom: 4px; }
+  .usage-sec.is-minor:hover { border-color: var(--ink-soft); }
+
+  .usage-list { display: flex; flex-direction: column; min-width: 0; }
+  .usage-item { display: flex; flex-direction: column; border-top: 1px solid var(--line-soft); gap: 2px; padding: 4px 0 8px; }
+  .usage-item:first-child { border-top: none; }
+  .usage-item-head { display: flex; align-items: center; gap: 8px; padding: 6px 2px; font-weight: 600; font-size: 12.5px; color: var(--fg); font-family: inherit; }
+  .usage-item-head .utitle { white-space: nowrap; }
+  .usage-head-sum { display: flex; gap: 16px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; font-weight: 500; font-size: 11.5px; opacity: .9; }
+  .usage-head-sum .m { display: inline-flex; gap: 4px; align-items: baseline; }
+  .usage-head-sum .lbl { opacity: .6; font-weight: 400; }
+  .usage-head-sum b { font-variant-numeric: tabular-nums; }
+  .chev { transition: transform .15s ease; opacity: .5; font-size: 11px; flex: none; }
+  /* 行内明细常显（不再折叠） */
+  .usage-detail { display: flex; flex-direction: column; gap: 5px; padding: 0 2px 2px; }
+  .usage-sub { margin-top: 4px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: rgba(127,127,127,.05); font-size: 11px; display: flex; flex-direction: column; gap: 4px; }
+  .usage-sub .sub-row { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+  .usage-sub .sub-prov { font-weight: 600; color: var(--fg); }
+  .usage-sub .sub-models { opacity: .55; font-size: 10.5px; }
+
+  /* DSH 明细分组：经本地网关（与网关卡重复） vs 直连上游（仅此处可见） */
+  .sub-group { padding: 3px 0; }
+  .sub-group + .sub-group { margin-top: 5px; padding-top: 7px; border-top: 1px dashed var(--line); }
+
+  .sub-group-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 3px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    letter-spacing: .03em;
+  }
+
+  .sub-group-sum {
+    margin-left: auto;
+    font-weight: 500;
+    opacity: .75;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dup-tag {
+    padding: 0 5px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #F0EDE6;
+    color: #8A7A52;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .dup-tag.direct-tag {
+    border-color: #B9DCC6;
+    background: #EAF6EF;
+    color: #1E7E5B;
+  }
+  .usage-note { margin-top: 5px; font-size: 10.5px; opacity: .6; line-height: 1.5; }
+
+  /* AgentHub 板块 */
+  .hub-warn {
+    margin: 2px 0 8px;
+    padding: 6px 9px;
+    border: 1px solid #E9B7B0;
+    border-radius: 8px;
+    background: #FBEAE7;
+    color: #B4231A;
+    font-size: 11px;
+  }
+
+  .hub-sub {
+    margin: 10px 2px 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    letter-spacing: .03em;
+  }
+
+  .hub-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .hub-hint { font-size: 10px; color: var(--muted); }
+
+  .checkin-time {
+    min-width: 108px;
+    padding: 4px 8px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #fff;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  /* 技能库位置：路径 + 更改按钮，像安装包选安装目录 */
+  .hub-location {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0 0 8px;
+    padding: 7px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #F4F6F3;
+  }
+
+  .hub-loc-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    letter-spacing: .03em;
+    flex: 0 0 auto;
+  }
+
+  .hub-loc-path {
+    flex: 1 1 200px;
+    min-width: 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* DSH 项目级联接表 */
+  .dsh-act { width: 96px; text-align: right; }
+  .usage-note code {
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(127, 127, 127, .12);
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+
+  /* 外部网关接入条与表单 */
+  .ext-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 10px 0 2px;
+  }
+
+  .ext-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 6px 0 4px;
+    padding: 10px 12px;
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    background: #F4F6F3;
+  }
+
+  .ext-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-soft);
+  }
+
+  .ext-form input, .ext-form select {
+    min-width: 120px;
+    padding: 4px 8px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #fff;
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+
+  .ext-form input#extName { min-width: 150px; }
+
+  .hub-out {
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    max-height: 240px;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #F4F6F3;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .app-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .app-row {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .app-close {
+    padding: 0 7px;
+    border: 1.5px dashed var(--line);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color .12s, border-color .12s, background .12s;
+  }
+
+  .app-close:hover:not(:disabled) {
+    color: #b42318;
+    border-color: #b42318;
+    background: #fff;
+  }
+
+  .app-close.is-busy {
+    border-style: solid;
+    cursor: default;
+    opacity: .72;
+  }
+
+  .app-key {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 2px 9px 2px 2px;
+    border: 1.5px solid var(--ink);
+    border-radius: 3px;
+    background: var(--panel);
+    box-shadow: 0 2px 0 var(--ink);
+    font-size: 11.5px;
+    font-weight: 600;
+    transition: background .12s, transform .08s, box-shadow .08s;
+  }
+
+  .app-key:hover:not(:disabled) { background: #fff; }
+
+  .app-key:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: none;
+  }
+
+  .app-mark {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .app-go {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 400;
+  }
+
+  .app-key.is-missing {
+    border-style: dashed;
+    box-shadow: none;
+    opacity: .48;
+  }
+
+  .app-key.is-missing .app-mark { background: var(--muted); }
+
+  .app-key.is-busy {
+    box-shadow: none;
+    opacity: .6;
+  }
+
+  .app-add {
+    border-style: dashed;
+    color: var(--muted);
+  }
+  .app-add .app-mark {
+    background: transparent;
+    border: 1px dashed var(--line);
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .record {
+    border-radius: 5px;
+    background: var(--ink);
+    color: #DCE7E4;
+    overflow: hidden;
+  }
+
+  .record-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 12px;
+    border-bottom: 1px solid #2D4A51;
+  }
+
+  .record-head h2 {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    color: #BFD2CF;
+  }
+
+  .record-head h2::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: var(--green);
+  }
+
+  .record-head span {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: #8FA9A5;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .logs {
+    height: 96px;
+    overflow: auto;
+    padding: 6px 12px 8px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    line-height: 1.65;
+  }
+
+  .logs::-webkit-scrollbar { width: 8px; }
+  .logs::-webkit-scrollbar-track { background: #0E252C; }
+  .logs::-webkit-scrollbar-thumb { background: #34535A; }
+
+  .empty { color: #7E9894; padding: 4px 0; }
+
+  .logline { display: flex; gap: 10px; }
+  .logline .t { flex: 0 0 auto; color: #6F8D88; }
+  .logline .msg { color: #C8D8D5; word-break: break-word; }
+  .logline.ok .msg { color: #9ADBB8; }
+  .logline.error .msg { color: #FFB3A3; }
+  .logline.warn .msg { color: #F0C674; }
+
+  footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 1px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 9.5px;
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translate(-50%, 10px);
+    max-width: min(620px, calc(100vw - 40px));
+    padding: 9px 15px;
+    border: 1.5px solid var(--ink);
+    border-radius: 3px;
+    background: var(--ink);
+    color: #F1F5F3;
+    font-size: 12px;
+    box-shadow: 4px 4px 0 rgba(18, 44, 52, .18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .16s, transform .16s;
+    z-index: 20;
+  }
+
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.error { border-color: var(--orange); background: #5B2415; }
+  .toast.warn { border-color: var(--amber); background: #4A3517; }
+
+  @media (max-width: 900px) {
+    .shell { padding: 14px 16px 10px; }
+    h1 { font-size: 34px; }
+    .channel { grid-template-columns: 100px minmax(0, 1fr) 178px 140px; gap: 11px; }
+    .port-number { font-size: 28px; }
+    .row-actions .key { min-width: 60px; }
+    .apps { gap: 12px; }
+  }
+
+  @media (max-width: 780px) {
+    .masthead { flex-direction: column; align-items: stretch; gap: 12px; }
+    .controls { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .channel {
+      grid-template-columns: 96px minmax(0, 1fr) auto;
+      grid-template-areas:
+        "port identity actions"
+        "port token token";
+      row-gap: 8px;
+    }
+    .port { grid-area: port; }
+    .identity { grid-area: identity; }
+    .token { grid-area: token; }
+    .row-actions { grid-area: actions; }
+    .token-value code { max-width: 220px; }
+    .apps { flex-direction: column; align-items: flex-start; }
+    .apps-head { border-right: 0; padding-right: 0; }
+    .usage-sec-sum { display: none; }
+  }
+
+  @media (max-width: 520px) {
+    h1 { font-size: 30px; }
+    .lede { display: none; }
+    .channel { grid-template-columns: 80px minmax(0, 1fr); grid-template-areas: "port identity" "token token" "actions actions"; }
+    .port-number { font-size: 24px; }
+    .row-actions { justify-content: flex-start; }
+    footer { flex-direction: column; align-items: flex-start; gap: 3px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="masthead">
+    <div class="brand-block">
+      <svg class="pig-logo" viewBox="0 0 64 64" role="img" aria-label="面板吉祥物：小猪">
+        <g>
+          <ellipse cx="21" cy="21" rx="10" ry="9" fill="#F49AC2"/>
+          <ellipse cx="43" cy="21" rx="10" ry="9" fill="#F49AC2"/>
+          <ellipse cx="23" cy="23" rx="5.5" ry="5" fill="#FAC4DD"/>
+          <ellipse cx="41" cy="23" rx="5.5" ry="5" fill="#FAC4DD"/>
+          <ellipse cx="32" cy="34" rx="22" ry="20" fill="#F8B2D0"/>
+          <ellipse cx="32" cy="44" rx="12" ry="9" fill="#F096BC"/>
+          <ellipse cx="27" cy="46.5" rx="3.2" ry="2.6" fill="#78465A"/>
+          <ellipse cx="37" cy="46.5" rx="3.2" ry="2.6" fill="#78465A"/>
+          <ellipse cx="22" cy="33" rx="4.6" ry="5.4" fill="#3C2832"/>
+          <ellipse cx="42" cy="33" rx="4.6" ry="5.4" fill="#3C2832"/>
+          <ellipse cx="23.6" cy="31.2" rx="1.7" ry="2" fill="#FFFFFF"/>
+          <ellipse cx="43.6" cy="31.2" rx="1.7" ry="2" fill="#FFFFFF"/>
+        </g>
+      </svg>
+      <div>
+        <p class="kicker">AI PROXY HUB / 127.0.0.1 / PANEL V2</p>
+        <h1>反代配线台</h1>
+        <p class="lede">四路本地网关，按需供电。关闭面板不会停掉任何一路。</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="meter" aria-live="polite">
+        <span class="meter-ticks" id="runTicks" aria-hidden="true"></span>
+        <span><b id="runCount">—</b> / <span id="runTotal">4</span> 在线</span>
+      </div>
+      <div class="master">
+        <button id="onboardBtn" class="key key-checkin" title="检测环境、启动网关并写入客户端配置">一键接入</button>
+        <button id="startAll" class="key key-primary">全部启动</button>
+        <button id="stopAll" class="key">全部停止</button>
+        <div class="checkin-wrap" id="checkinWrap">
+          <button id="checkinAll" class="key key-checkin">全部签到</button>
+          <button id="checkinSched" class="key key-sched" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="checkinPop" title="每日定时签到（Windows 计划任务）">
+            <span class="sched-dot" aria-hidden="true"></span>
+            <span>定时</span>
+            <b id="checkinSchedTime">—</b>
+          </button>
+          <div id="checkinPop" class="checkin-pop" role="dialog" aria-label="定时签到设置" hidden></div>
+        </div>
+        <button id="refreshBtn" class="key key-quiet">刷新</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="offline" class="offline">面板后端还没连上。浏览器预览请用 <code>?demo=1</code>，正式使用请从 AI反代面板.bat 打开。</div>
+
+  <main>
+    <section id="cards" class="rack" aria-live="polite">
+      <div class="empty" style="padding: 24px; color: var(--muted);">正在读取网关状态…</div>
+    </section>
+
+    <div class="ext-bar">
+      <button type="button" class="key key-quiet key-mini" id="extToggle">＋ 接入外部网关</button>
+      <span class="hub-hint">自己起了一个本地网关？填端口和 token 即可加入面板（面板只探活，不管理进程）</span>
+    </div>
+    <form id="extForm" class="ext-form" style="display:none">
+      <label>名称 <input id="extName" placeholder="如 My Gateway"></label>
+      <label>端口 <input id="extPort" type="number" min="1" max="65535" placeholder="8080" required></label>
+      <label>token <input id="extToken" placeholder="该网关的 Bearer token，可留空"></label>
+      <label>协议
+        <select id="extProto">
+          <option value="openai">OpenAI 兼容</option>
+          <option value="anthropic">Anthropic 兼容</option>
+        </select>
+      </label>
+      <button type="submit" class="key key-primary key-mini">接入</button>
+      <button type="button" class="key key-quiet key-mini" id="extCancel">取消</button>
+    </form>
+
+    <section class="usage-sec is-major" id="usageSec" aria-label="今日消耗统计">
+      <button type="button" class="usage-sec-head" id="usageSecHead" aria-expanded="false" aria-controls="usageGrid">
+        <span class="chev">▶</span>
+        <h2>今日消耗</h2>
+        <span class="usage-sec-sum" id="usageSecSum"></span>
+      </button>
+      <div class="usage-sec-body">
+        <p class="usage-sec-note">上行四个网关：谁被消耗了（本地反代日志，按请求计）。DSH 行：谁在消耗（会话回放，按模型调用计）。两者对同一笔流量各记一次，<b>不可相加</b>。</p>
+        <div id="usageGrid" class="usage-list">
+          <div class="empty" style="padding: 8px 2px; color: var(--muted);">加载中…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="usage-sec is-minor" id="hubSec" aria-label="AgentHub 共享底座">
+      <button type="button" class="usage-sec-head" id="hubSecHead" aria-expanded="false" aria-controls="hubBody">
+        <span class="chev">▶</span>
+        <h2>AgentHub</h2>
+        <span class="usage-sec-sum" id="hubSecSum"></span>
+      </button>
+      <div class="usage-sec-body" id="hubBody">
+        <p class="usage-sec-note">多 agent 共享底座：技能库统一到一处、记忆与项目规则指向同一份。这里只读检测状态，变更操作直接调 AgentHub 自己的脚本，不重复实现。</p>
+        <div id="hubContent"><div class="empty" style="padding:8px 2px;color:var(--muted)">读取中…</div></div>
+      </div>
+    </section>
+
+    <section class="usage-sec is-minor" id="envSec" aria-label="环境自检">
+      <button type="button" class="usage-sec-head" id="envSecHead" aria-expanded="false" aria-controls="envBody">
+        <span class="chev">▶</span>
+        <h2>环境自检</h2>
+        <span class="usage-sec-sum" id="envSecSum"></span>
+      </button>
+      <div class="usage-sec-body" id="envBody">
+        <p class="usage-sec-note">换机器或新装时先看这里：运行环境、网关源码、客户端配置是否到位。<b>只读检测</b>，不改任何文件，也不显示任何真实凭据。</p>
+        <div id="envContent"><div class="empty" style="padding:8px 2px;color:var(--muted)">读取中…</div></div>
+      </div>
+    </section>
+
+    <section class="usage-sec is-minor" id="setupSec" aria-label="配置接入">
+      <button type="button" class="usage-sec-head" id="setupSecHead" aria-expanded="false" aria-controls="setupBody">
+        <span class="chev">▶</span>
+        <h2>配置接入</h2>
+        <span class="usage-sec-sum" id="setupSecSum"></span>
+      </button>
+      <div class="usage-sec-body" id="setupBody">
+        <p class="usage-sec-note">把客户端接到本机网关：DSH / ZCode 可先预览再写入，写前自动备份；Claude Code / Codex 只给可复制片段——它们的模型名必须与网关对齐，自动改容易把原本能用的直连配置弄坏。<b>新机器直接点右上角「一键接入」</b>，会按顺序补齐环境、启动网关并写入配置。</p>
+        <div id="setupContent"><div class="empty" style="padding:8px 2px;color:var(--muted)">读取中…</div></div>
+      </div>
+    </section>
+
+    <section class="usage-sec is-minor" id="bootSec" aria-label="启动与端口">
+      <button type="button" class="usage-sec-head" id="bootSecHead" aria-expanded="false" aria-controls="bootBody">
+        <span class="chev">▶</span>
+        <h2>启动与端口</h2>
+        <span class="usage-sec-sum" id="bootSecSum"></span>
+      </button>
+      <div class="usage-sec-body" id="bootBody">
+        <p class="usage-sec-note">开机自启只登记<b>面板本身</b>：登录 Windows 后打开面板，不会自动启动网关。端口表按当前监听进程归因，用来发现「端口被别的程序占了」。</p>
+        <div id="bootContent"><div class="empty" style="padding:8px 2px;color:var(--muted)">读取中…</div></div>
+      </div>
+    </section>
+
+    <section class="apps" aria-label="打开本机软件">
+      <div class="apps-head">
+        <h2>客户端</h2>
+        <p>打开或关闭本机应用，不动网关。</p>
+      </div>
+      <div id="appButtons" class="app-buttons"></div>
+    </section>
+
+    <section class="record">
+      <div class="record-head">
+        <h2>运行记录</h2>
+        <span id="updated">等待连接…</span>
+      </div>
+      <div id="logs" class="logs"><div class="empty">暂无操作</div></div>
+    </section>
+  </main>
+
+  <footer>
+    <span>AI Proxy Hub / 本地回环</span>
+    <span>面板 v2 · 占位 token 仅满足客户端必填项，真实凭据只留在代理进程里</span>
+  </footer>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const $ = (sel) => document.querySelector(sel);
+  const demo = new URLSearchParams(location.search).has("demo");
+  const APP_MARKS = { qoder: "Q", qoder_intl: "Q", dsh: "D", zcode: "Z", workbuddy: "W", autoclaw: "A", doubao: "豆" };
+
+  // 四家网关的简化版品牌图标（自绘 SVG，非官方资源）。
+  const BRAND_ICONS = {
+    auto: '<svg viewBox="0 0 24 24" width="18" height="18" role="img" aria-label="AutoClaw"><circle cx="12" cy="12" r="11" fill="#176B4D"/><g fill="#9ADBB8"><ellipse cx="12" cy="15" rx="6.5" ry="5"/><ellipse cx="6.5" cy="9" rx="2.4" ry="3.2" transform="rotate(-25 6.5 9)"/><ellipse cx="17.5" cy="9" rx="2.4" ry="3.2" transform="rotate(25 17.5 9)"/><ellipse cx="12" cy="6" rx="2.2" ry="3"/></g><circle cx="9.6" cy="13.6" r="1" fill="#176B4D"/><circle cx="14.4" cy="13.6" r="1" fill="#176B4D"/></svg>',
+    wb: '<svg viewBox="0 0 24 24" width="18" height="18" role="img" aria-label="WorkBuddy"><rect x="2" y="2" width="20" height="20" rx="5" fill="#3B82F6"/><path d="M7 16 L11 7 L13 7 L17 16 L14.4 16 L12 10.5 L9.6 16 Z" fill="#EAF2FF"/><rect x="9.2" y="12.4" width="5.6" height="2.1" fill="#3B82F6"/></svg>',
+    qoder: '<svg viewBox="0 0 24 24" width="18" height="18" role="img" aria-label="Qoder"><rect x="2.5" y="2.5" width="19" height="19" rx="5" fill="#A855F7"/><path d="M9 8.2 A5 5 0 1 0 15 14.2" fill="none" stroke="#F3E8FF" stroke-width="2.6" stroke-linecap="round"/><line x1="14.3" y1="14.3" x2="17.2" y2="17.2" stroke="#F3E8FF" stroke-width="2.6" stroke-linecap="round"/></svg>',
+    doubao: '<svg viewBox="0 0 24 24" width="18" height="18" role="img" aria-label="DoubaoWork"><circle cx="12" cy="12" r="11" fill="#F59E0B"/><ellipse cx="12" cy="13" rx="6" ry="7.5" fill="#FFF3DC"/><path d="M12 6.5 Q8.5 9 8.5 13 Q12 11 15.5 13 Q15.5 9 12 6.5 Z" fill="#E08A0B" opacity=".55"/><path d="M9 10 Q12 12 15 10" fill="none" stroke="#C26A00" stroke-width="1" stroke-linecap="round"/></svg>',
+    dsh: '<svg viewBox="0 0 24 24" width="18" height="18" role="img" aria-label="DSH"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="#0EA5E9"/><path d="M7.5 15.5 L11 7.5 L13 7.5 L16.5 15.5 L13.8 15.5 L12 10.2 L10.2 15.5 Z" fill="#E0F5FF"/><circle cx="12" cy="16.8" r="1.3" fill="#0EA5E9"/></svg>'
+  };
+
+  function brandIcon(key) {
+    return BRAND_ICONS[key] || "";
+  }
+
+  let started = false;
+  let demoAutostart = true;
+  let lastLogSignature = "";
+  let lastViewSignature = "";
+  let lastAppSignature = "";
+  let toastTimer = 0;
+  let offlineNoted = false;
+
+  const DEMO_PROVIDERS = [
+    { key: "auto", name: "AutoClaw relay", badge: "A", port: 18766, proto: "Anthropic + OpenAI",
+      url: "http://127.0.0.1:18766", token: "autoclaw-local", running: true, pid: 38120,
+      note: "账号池 2 号就绪", latency_ms: 9, dashboard: "" },
+    { key: "wb", name: "WorkBuddy proxy", badge: "W", port: 8787, proto: "OpenAI",
+      url: "http://127.0.0.1:8787", token: "workbuddy-local", running: true, pid: 41540,
+      note: "健康检查通过", latency_ms: 4, dashboard: "" },
+    { key: "qoder", name: "Qoder proxy", badge: "Q", port: 8790, proto: "OpenAI",
+      url: "http://127.0.0.1:8790", token: "qoder-local", running: true, pid: 150344,
+      note: "账号 1 / 就绪 1 / cn", latency_ms: 6, dashboard: "http://127.0.0.1:8790/" },
+    { key: "doubao", name: "DoubaoWork relay", badge: "D", port: 18770, proto: "OpenAI / cookie",
+      url: "http://127.0.0.1:18770", token: "doubao-local-key", running: false, pid: null,
+      note: "端口未监听", latency_ms: null, dashboard: "" }
+  ];
+  const DEMO_APPS = [
+    { key: "qoder", label: "Qoder CN", exists: true, path: "Qoder CN Launcher.exe" },
+    { key: "qoder_intl", label: "Qoder 国际版", exists: true, path: "Qoder Launcher.exe" },
+    { key: "dsh", label: "DSH", exists: true, path: "DSH Desktop.exe" },
+    { key: "zcode", label: "ZCode", exists: true, path: "ZCode.exe" },
+    { key: "workbuddy", label: "WorkBuddy", exists: true, path: "WorkBuddy.exe" },
+    { key: "autoclaw", label: "AutoClaw", exists: true, path: "AutoClaw2.exe" },
+    { key: "doubao", label: "豆包工作", exists: true, path: "DoubaoWork.exe" }
+  ];
+  const demoProviders = DEMO_PROVIDERS.map((p) => Object.assign({}, p));
+  demoProviders.push({
+    key: "custom-8080", name: "我的外部网关", badge: "我", port: 8080,
+    proto: "OpenAI · 外部", token: "sk-demo", running: true, pid: null,
+    note: "外部网关在线，3 个模型", latency_ms: 12, external: true,
+  });
+  let demoLogs = [
+    { id: 1, t: "00:22:10", text: "面板已就绪，等待操作", level: "info" },
+    { id: 2, t: "00:22:13", text: "启动 Qoder proxy：已启动（12.4s）", level: "ok" }
+  ];
+  let demoId = 3;
+  let demoQoderRealm = "cn";
+  let demoQoderImported = false;
+  let demoCheckin = { exists: true, time: "09:00", disabled: false };
+  let demoOnboardJob = null;
+  const demoOnboardApplied = {};
+  let demoClosing = [];
+
+  function esc(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[ch]));
+  }
+
+  function fmtTime(epoch) {
+    if (!epoch) return "等待连接…";
+    return "更新于 " + new Date(epoch * 1000).toLocaleTimeString("zh-CN", { hour12: false });
+  }
+
+  function toast(message, kind) {
+    const el = $("#toast");
+    el.textContent = message;
+    el.className = "toast show " + (kind || "ok");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = "toast"; }, 2800);
+  }
+
+
+  function renderUsage(u) {
+    const grid = document.getElementById("usageGrid");
+    if (!grid || !u) return;
+    const fmt = (n) => n >= 1000000 ? (n/1000000).toFixed(1) + "M" : n >= 1000 ? (n/1000).toFixed(1) + "k" : String(n);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+    // 每个 agent 一个平铺块：指标常显，不再逐行折叠。
+    // metrics 是本行完整指标；extra 只放额外内容（DSH 的 provider 子行 / 备注），避免与 metrics 重复。
+    const row = (key, title, color, metrics, extra) =>
+      '<div class="usage-item" data-key="' + key + '">' +
+        '<div class="usage-item-head">' +
+          '<span class="brand-ico">' + brandIcon(key) + '</span>' +
+          '<span class="utitle" style="color:' + color + '">' + title + '</span>' +
+          '<span class="usage-head-sum">' +
+            metrics.map(r => '<span class="m"><span class="lbl">' + r[0] + '</span><b>' + r[1] + '</b></span>').join("") +
+          '</span>' +
+        '</div>' +
+        (extra ? '<div class="usage-detail">' + extra + '</div>' : "") +
+      '</div>';
+    const auto = u.auto || {}, wb = u.wb || {}, qo = u.qoder || {}, db = u.doubao || {}, dsh = u.dsh || {};
+    // DSH 明细：按「经本地网关 / 直连上游」两组。
+    // 不做总量复述（行内已有），只列每组的 provider 与各自小计。
+    let dshDetail = "";
+    if (Object.keys(dsh).length) {
+      if (dsh.available) {
+        // 每个 provider 一行：名字 + 调用数 + 输出（token 数太大，只保留最直观的输出）
+        const subRow = (p) =>
+          '<div class="sub-row">' +
+            '<span class="sub-prov">' + esc(p.provider) + '</span>' +
+            '<span class="m"><span class="lbl">调用</span><b>' + fmt(p.requests || 0) + '</b></span>' +
+            '<span class="m"><span class="lbl">输出</span><b>' + fmt(p.out || 0) + '</b></span>' +
+            (p.models && p.models.length
+              ? '<span class="sub-models">' + esc(p.models.join(" / ")) + '</span>' : '') +
+          '</div>';
+        const parts = (dsh.by_provider || []);
+        const via = parts.filter(p => p.via_gateway);
+        const direct = parts.filter(p => !p.via_gateway);
+        let blocks = "";
+        if (via.length) {
+          blocks +=
+            '<div class="sub-group sub-group-dup">' +
+              '<div class="sub-group-head">经本地网关' +
+                '<span class="dup-tag">已计入上方网关卡</span>' +
+              '</div>' +
+              via.map(subRow).join("") +
+            '</div>';
+        }
+        if (direct.length) {
+          blocks +=
+            '<div class="sub-group sub-group-direct">' +
+              '<div class="sub-group-head">直连上游' +
+                '<span class="dup-tag direct-tag">仅此处可见</span>' +
+              '</div>' +
+              direct.map(subRow).join("") +
+            '</div>';
+        }
+        dshDetail = '<div class="usage-sub">' + blocks + '</div>' +
+          '<div class="usage-note">' + esc(dsh.note || "") + '</div>';
+      } else {
+        dshDetail = '<div class="usage-note">' + esc(dsh.note || "DSH 今日暂无数据") + '</div>';
+      }
+    }
+    // 消耗行改为按规格表 + 后端返回的数据动态生成：
+    // 加新网关时只要 gw_specs 里标了 "usage" 且 Api.usage() 回了同名 key，这里自动出。
+    const USAGE_SRC = { auto: auto, wb: wb, qoder: qo, doubao: db };
+    // 指标列：不同协议给的数据粒度不同（token / 字符）
+    const usageMetrics = (key, d) => {
+      if (d.chars != null) {
+        return [["请求", fmt(d.requests || 0)], ["输出字符", fmt(d.chars || 0)]];
+      }
+      const m = [
+        ["请求", fmt(d.requests || 0)],
+        ["输入 tokens", fmt(d["in"] || 0)],
+        ["输出 tokens", fmt(d.out || 0)],
+      ];
+      if (d.cache_pct != null) m.push(["缓存命中", d.cache_pct + "%"]);
+      return m;
+    };
+    // ============================================================
+    // 两块分开，口径不同，不混在一起：
+    //   ① 网关层 —— 谁被消耗了（本地反代日志，按「请求」计）
+    //   ② DSH   —— 谁在消耗（会话回放，按「模型调用」计）
+    // 两者对同一笔流量各记一次（DSH 走本地网关的部分），所以**不能相加**。
+    // ============================================================
+
+    // ① 网关层：一行一个网关
+    let html = keysWithCap("usage").map((k) => {
+      const d = USAGE_SRC[k] || {};
+      const s = specOf(k);
+      return row(k, s.name || k, s.color || "#666", usageMetrics(k, d));
+    }).join("");
+
+    // ② DSH：行内只放**总量**，展开后按 provider 分组，不再重复总量
+    // 分组标题里带清楚的口径提示，避免用户把两组相加
+    let dshMetrics;
+    if (dsh.available) {
+      dshMetrics = [
+        ["调用", fmt(dsh.requests || 0)],
+        ["输入", fmt((dsh["in"] || 0) + (dsh.cache_read || 0))],
+        ["输出", fmt(dsh.out || 0)],
+      ];
+    } else {
+      dshMetrics = [["状态", "无数据"]];
+    }
+    html += row("dsh", "DSH（按模型调用）", "#0ea5e9", dshMetrics, dshDetail);
+    grid.innerHTML = html;
+
+    // 板块表头汇总：只汇总**网关层**，不与 DSH 相加（口径不同）
+    const secSum = document.getElementById("usageSecSum");
+    if (secSum) {
+      const gwKeys = keysWithCap("usage");
+      const totReq = gwKeys.reduce((s, k) => s + ((USAGE_SRC[k] || {}).requests || 0), 0);
+      const totOut = gwKeys.reduce((s, k) => s + ((USAGE_SRC[k] || {}).out || 0), 0);
+      const dshReq = dsh.available ? (dsh.requests || 0) : 0;
+      secSum.innerHTML =
+        '<span>网关请求 <b>' + fmt(totReq) + '</b></span>' +
+        '<span>网关输出 <b>' + fmt(totOut) + '</b></span>' +
+        (dshReq ? '<span>DSH 调用 <b>' + fmt(dshReq) + '</b></span>' : '');
+    }
+  }
+
+  // 板块折叠：默认收起，点表头才显示各 agent 行
+  function initUsageSection() {
+    const sec = document.getElementById("usageSec");
+    const head = document.getElementById("usageSecHead");
+    if (!sec || !head) return;
+    head.addEventListener("click", () => {
+      const open = sec.classList.toggle("open");
+      head.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+  }
+  // ============ AgentHub 共享底座 ============
+  const HUB_STATE_LABEL = {
+    ok: ["已统一", "chip-ok"],
+    "plain-dir": ["联接已断", "chip-warn"],
+    "wrong-target": ["指向别处", "chip-warn"],
+    missing: ["未安装", "chip-unknown"],
+    plain: ["未接入", "chip-unknown"],
+  };
+
+  function renderHub(h) {
+    const box = document.getElementById("hubContent");
+    const sum = document.getElementById("hubSecSum");
+    if (!box) return;
+    if (!h || h.ok === false) {
+      box.innerHTML = '<div class="acct-empty">' + esc((h && h.message) || "读取 AgentHub 失败") + "</div>";
+      if (sum) sum.innerHTML = "";
+      return;
+    }
+    const st = h.store || {};
+    const chip = (state) => {
+      const [txt, cls] = HUB_STATE_LABEL[state] || [state, "chip-unknown"];
+      return '<span class="chip ' + cls + '">' + txt + "</span>";
+    };
+    // 来源行
+    const srcRows = (h.sources || []).map((s) =>
+      "<tr>" +
+        "<td>" + esc(s.label) + "</td>" +
+        '<td class="num">' + chip(s.state) + "</td>" +
+        '<td style="opacity:.6;font-size:10.5px">' + esc(s.path) + "</td>" +
+      "</tr>"
+    ).join("");
+    // 记忆入口行
+    const memRows = (h.memory || []).map((m) =>
+      "<tr>" +
+        "<td>" + esc(m.label) + "</td>" +
+        '<td class="num">' + chip(m.state) + "</td>" +
+        '<td style="opacity:.6;font-size:10.5px">' + esc(m.path) + "</td>" +
+      "</tr>"
+    ).join("");
+
+    // DSH 项目级联接：DSH 与另外四个不同，按项目发现技能
+    const dsh = h.dsh_projects || {};
+    let dshBlock = "";
+    if (dsh.ok && Array.isArray(dsh.projects)) {
+      const DSH_LABEL = {
+        ok: ["已联接", "chip-ok"], missing: ["缺联接", "chip-warn"],
+        "wrong-target": ["指向别处", "chip-warn"], "plain-dir": ["真实目录", "chip-unknown"],
+      };
+      const dchip = (st) => {
+        const [t, c] = DSH_LABEL[st] || [st, "chip-unknown"];
+        return '<span class="chip ' + c + '">' + t + "</span>";
+      };
+      const rows = dsh.projects.map((p) =>
+        "<tr>" +
+          "<td>" + esc(p.name) + "</td>" +
+          '<td class="num">' + dchip(p.state) + "</td>" +
+          '<td class="dsh-act">' +
+            (p.state === "ok"
+              ? '<span class="acct-cur">已就绪</span>'
+              : (p.state === "plain-dir"
+                  ? '<span class="hub-hint">需手动处理</span>'
+                  : '<button class="key key-quiet key-mini" data-dsh-link="' +
+                    esc(p.path) + '">补联接</button>')) +
+          "</td>" +
+        "</tr>"
+      ).join("");
+      dshBlock =
+        '<div class="hub-sub">DSH 项目级联接' +
+          '<span class="hub-hint" style="margin-left:8px">' +
+            esc(dsh.need_count > 0 ? dsh.need_count + " 个项目缺联接" : "全部就绪") +
+          "</span>" +
+        "</div>" +
+        '<p class="usage-note" style="margin:0 2px 6px">DSH 按项目发现技能：' +
+          "每个项目的 <code>.dsh\\skills</code> 必须是指向技能库的联接，" +
+          "否则该项目里看不到共享技能。其余四个 agent 是全局目录，已在上面统一。</p>" +
+        (dsh.projects.length
+          ? '<table class="acct-table"><thead><tr><th>项目</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
+            rows + "</tbody></table>"
+          : '<div class="acct-empty">没有找到项目（项目根：' + esc(dsh.root || "?") + "）</div>") +
+        '<div class="hub-actions" style="margin-top:6px">' +
+          '<button class="key key-quiet key-mini" id="dshScanBtn" data-dsh-scan="0">重新扫描</button>' +
+          (dsh.need_count > 0
+            ? '<button class="key key-checkin key-mini" id="dshFixAllBtn" data-dsh-scan="1">一键补全全部</button>'
+            : "") +
+        "</div>";
+    }
+
+    const warn = h.broken > 0
+      ? '<div class="hub-warn">⚠ ' + h.broken + " 个技能来源联接异常，点下方「演练统一技能」看看 AgentHub 打算怎么做。</div>"
+      : "";
+
+    box.innerHTML =
+      '<div class="acct-sum">' +
+        "<span>技能库 <b>" + (st.entries || 0) + "</b> 项</span>" +
+        "<span>文件 <b>" + (st.files || 0) + "</b></span>" +
+        "<span>占用 <b>" + (st.mb || 0) + "</b> MB</span>" +
+        "<span>异常 <b>" + (h.broken || 0) + "</b></span>" +
+      "</div>" +
+      // 技能库位置：像安装包选安装目录一样，点按钮弹原生文件夹选择框
+      '<div class="hub-location">' +
+        '<span class="hub-loc-label">技能库位置</span>' +
+        '<code class="hub-loc-path" title="' + esc(st.path || "") + '">' +
+          esc(st.path || "(未设置)") + "</code>" +
+        '<button class="key key-quiet key-mini" id="hubPickStore">更改…</button>' +
+      "</div>" +
+      warn +
+      '<table class="acct-table"><thead><tr><th>技能来源</th><th>状态</th><th>路径</th></tr></thead><tbody>' +
+        srcRows + "</tbody></table>" +
+      '<div class="hub-sub">记忆入口</div>' +
+      '<table class="acct-table"><thead><tr><th>Agent</th><th>状态</th><th>路径</th></tr></thead><tbody>' +
+        memRows + "</tbody></table>" +
+      dshBlock +
+      '<div class="hub-actions">' +
+        '<button class="key key-quiet key-mini" data-hub="link-skills" data-apply="0">演练统一技能</button>' +
+        '<button class="key key-quiet key-mini" data-hub="point-memory" data-apply="0">演练记忆指针</button>' +
+        '<span class="hub-hint">演练只打印计划，不改任何文件</span>' +
+      "</div>" +
+      '<pre class="hub-out" id="hubOut" style="display:none"></pre>';
+
+    if (sum) {
+      sum.innerHTML =
+        '<span>技能 <b>' + (st.entries || 0) + '</b> 项</span>' +
+        (h.broken > 0
+          ? '<span style="color:#B4231A">异常 <b>' + h.broken + "</b></span>"
+          : "<span>联接 <b>正常</b></span>");
+    }
+  }
+
+  async function refreshHub() {
+    try {
+      const h = await api("agenthub_status");
+      // 顺带拉 DSH 项目级联接状态（两个请求互不影响）
+      try {
+        const d = await api("agenthub_dsh_status", "");
+        if (h && typeof h === "object") h.dsh_projects = d;
+      } catch (e) { /* DSH 扫描失败不影响主面板 */ }
+      renderHub(h);
+    } catch (e) {
+      renderHub({ ok: false, message: String(e) });
+    }
+  }
+
+  function initHubSection() {
+    const sec = document.getElementById("hubSec");
+    const head = document.getElementById("hubSecHead");
+    if (!sec || !head) return;
+    head.addEventListener("click", () => {
+      const open = sec.classList.toggle("open");
+      head.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) refreshHub();
+    });
+    document.getElementById("hubContent").addEventListener("click", async (ev) => {
+      // 给单个项目补 DSH 联接
+      const linkBtn = ev.target.closest("button[data-dsh-link]");
+      if (linkBtn && !linkBtn.disabled) {
+        const proj = linkBtn.dataset.dshLink;
+        linkBtn.disabled = true;
+        const old = linkBtn.textContent;
+        linkBtn.textContent = "处理中…";
+        try {
+          const r = await api("agenthub_link_dsh", proj);
+          toast(r && r.ok ? "已补上 DSH 联接" : ((r && (r.message || r.output)) || "失败"),
+                r && r.ok ? "ok" : "warn");
+          await refreshHub();
+        } catch (e) {
+          toast("失败：" + e, "warn");
+        } finally {
+          if (linkBtn.isConnected) { linkBtn.disabled = false; linkBtn.textContent = old; }
+        }
+        return;
+      }
+
+      // 扫描 / 一键补全全部
+      const scanBtn = ev.target.closest("button[data-dsh-scan]");
+      if (scanBtn && !scanBtn.disabled) {
+        const apply = scanBtn.dataset.dshScan === "1";
+        if (apply) {
+          const okGo = confirm(
+            "将为所有缺联接的项目创建 .dsh\\skills 联接。\n\n" +
+            "这只会新增 junction，不会删除或移动任何技能文件。\n\n确定继续吗？");
+          if (!okGo) return;
+        }
+        scanBtn.disabled = true;
+        const old = scanBtn.textContent;
+        scanBtn.textContent = apply ? "补全中…" : "扫描中…";
+        const out = document.getElementById("hubOut");
+        try {
+          const r = await api("agenthub_scan_projects", apply, "");
+          if (r && (r.output || r.message)) {
+            if (out) { out.style.display = "block"; out.textContent = r.output || r.message; }
+          }
+          toast(r && r.ok ? (apply ? "已补全" : "扫描完成") : "操作失败",
+                r && r.ok ? "ok" : "warn");
+          await refreshHub();
+        } catch (e) {
+          toast("失败：" + e, "warn");
+        } finally {
+          if (scanBtn.isConnected) { scanBtn.disabled = false; scanBtn.textContent = old; }
+        }
+        return;
+      }
+
+      // 更改技能库位置：弹原生文件夹选择框（像安装包选安装目录）
+      const pick = ev.target.closest("#hubPickStore");
+      if (pick && !pick.disabled) {
+        pick.disabled = true;
+        const old = pick.textContent;
+        pick.textContent = "选择中…";
+        try {
+          const cur = pick.closest(".hub-location");
+          const curPath = cur ? (cur.querySelector(".hub-loc-path") || {}).textContent : "";
+          const r = await api("pick_folder", curPath || "");
+          if (!r || !r.ok) {
+            if (r && !r.canceled) toast((r && r.message) || "选择失败", "warn");
+            return;
+          }
+          // 询问是否连同技能一起搬过去（默认搬，符合"换安装目录"的直觉）
+          const okGo = confirm(
+            "把技能库位置改为：\n" + r.path + "\n\n" +
+            "点「确定」= 连技能一起搬过去（同盘秒完成，跨盘需要双倍空间）\n" +
+            "点「取消」= 只改配置，技能留在原处\n\n" +
+            "确定要更改吗？");
+          if (!okGo) return;
+          const r2 = await api("agenthub_migrate_store", r.path);
+          if (r2 && r2.ok) {
+            toast("技能库已迁移到新位置", "ok");
+            await refreshHub();
+          } else {
+            toast((r2 && (r2.message || r2.output)) || "迁移失败", "warn");
+            // 失败也刷新一次，让用户看到当前真实配置
+            await refreshHub();
+          }
+        } catch (e) {
+          toast("选择失败：" + e, "warn");
+        } finally {
+          if (pick.isConnected) { pick.disabled = false; pick.textContent = old; }
+        }
+        return;
+      }
+
+      const btn = ev.target.closest("button[data-hub]");
+      if (!btn || btn.disabled) return;
+      const cmd = btn.dataset.hub;
+      const out = document.getElementById("hubOut");
+      btn.disabled = true;
+      if (out) { out.style.display = "block"; out.textContent = "执行中…"; }
+      try {
+        const r = await api("agenthub_run", cmd, false);
+        if (out) out.textContent = (r && (r.output || r.message)) || "(无输出)";
+      } catch (e) {
+        if (out) out.textContent = String(e);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  // ============ 环境自检 ============
+  const ENV_STATE_LABEL = {
+    ok: ["正常", "chip-ok"],
+    warn: ["注意", "chip-warn"],
+    fail: ["缺失", "chip-warn"],
+  };
+
+  function envChip(state) {
+    const [txt, cls] = ENV_STATE_LABEL[state] || [state, "chip-unknown"];
+    return '<span class="chip ' + cls + '">' + txt + "</span>";
+  }
+
+  function renderEnv(d) {
+    const box = document.getElementById("envContent");
+    const sum = document.getElementById("envSecSum");
+    if (!box) return;
+    if (!d || d.ok === false) {
+      box.innerHTML = '<div class="acct-empty">' + esc((d && d.message) || "环境自检失败") + "</div>";
+      if (sum) sum.innerHTML = "";
+      return;
+    }
+    const s = d.summary || {};
+    const groups = (d.groups || []).map((g) => {
+      const rows = (g.items || []).map((it) => {
+        const hint = it.state !== "ok" && it.impact
+          ? '<div class="hub-hint" style="margin-top:2px">影响：' + esc(it.impact) + "</div>"
+          : "";
+        return "<tr>" +
+          "<td>" + esc(it.label) + "</td>" +
+          '<td class="num">' + envChip(it.state) + "</td>" +
+          "<td>" + esc(it.detail) + hint + "</td>" +
+        "</tr>";
+      }).join("");
+      return '<div class="hub-sub">' + esc(g.label) +
+          '<span class="hub-hint" style="margin-left:8px">' + esc(g.note || "") + "</span></div>" +
+        '<table class="acct-table"><thead><tr><th>检查项</th><th>状态</th><th>详情</th></tr></thead><tbody>' +
+          rows + "</tbody></table>";
+    }).join("");
+    const overall = s.fail
+      ? '<span style="color:#B4231A">缺失 <b>' + s.fail + "</b> 项，按详情补齐后重新检测</span>"
+      : (s.warn
+        ? '<span style="color:#B4231A">注意 <b>' + s.warn + "</b> 项，不影响面板本身</span>"
+        : "<span>关键项 <b>全部就绪</b></span>");
+    box.innerHTML =
+      '<div class="acct-sum">' +
+        "<span>正常 <b>" + (s.ok || 0) + "</b></span>" +
+        "<span>注意 <b>" + (s.warn || 0) + "</b></span>" +
+        "<span>缺失 <b>" + (s.fail || 0) + "</b></span>" +
+        overall +
+      "</div>" +
+      groups +
+      '<div class="hub-actions">' +
+        '<button class="key key-quiet key-mini" id="envRefresh">重新检测</button>' +
+        '<span class="hub-hint">只读检测，不改任何文件；结果缓存 60 秒</span>' +
+      "</div>";
+    if (sum) {
+      sum.innerHTML = s.fail
+        ? '<span style="color:#B4231A">缺失 <b>' + s.fail + "</b></span>"
+        : (s.warn
+          ? '<span style="color:#B4231A">注意 <b>' + s.warn + "</b></span>"
+          : "<span>全部就绪</span>");
+    }
+  }
+
+  let envLoading = false;
+  async function refreshEnv(force) {
+    const box = document.getElementById("envContent");
+    if (!box || envLoading) return;
+    envLoading = true;
+    if (force) box.innerHTML = '<div class="acct-empty">检测中…</div>';
+    try {
+      renderEnv(await api("env_check", !!force));
+    } catch (e) {
+      renderEnv({ ok: false, message: String(e) });
+    } finally {
+      envLoading = false;
+    }
+  }
+
+  function initEnvSection() {
+    const sec = document.getElementById("envSec");
+    const head = document.getElementById("envSecHead");
+    if (!sec || !head) return;
+    head.addEventListener("click", () => {
+      const open = sec.classList.toggle("open");
+      head.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) refreshEnv(false);
+    });
+    document.getElementById("envContent").addEventListener("click", (ev) => {
+      if (ev.target.closest("#envRefresh")) refreshEnv(true);
+    });
+  }
+
+  // ============ 配置接入（DSH / ZCode 可写，Claude / Codex 给片段）============
+  const SETUP_STATE_LABEL = {
+    ok: ["已接入", "chip-ok"],
+    warn: ["待修正", "chip-warn"],
+    missing: ["未安装", "chip-unknown"],
+  };
+
+  function setupChip(state) {
+    const [txt, cls] = SETUP_STATE_LABEL[state] || [state, "chip-unknown"];
+    return '<span class="chip ' + cls + '">' + txt + "</span>";
+  }
+
+  function renderSetup(d) {
+    const box = document.getElementById("setupContent");
+    const sum = document.getElementById("setupSecSum");
+    if (!box) return;
+    if (!d || d.ok === false) {
+      box.innerHTML = '<div class="acct-empty">' + esc((d && d.message) || "读取配置接入失败") + "</div>";
+      if (sum) sum.innerHTML = "";
+      return;
+    }
+    const rows = (d.rows || []).map((r) => {
+      const act = !r.exists
+        ? '<span class="hub-hint">未安装</span>'
+        : '<button class="key key-quiet key-mini" data-setup-preview="' + esc(r.key) + '">' +
+          (r.action === "apply"
+            ? (r.state === "ok" ? "重新校验" : "预览修正")
+            : "查看片段") + "</button>";
+      return "<tr>" +
+        "<td>" + esc(r.label) +
+          '<div class="hub-hint" style="font-size:10.5px;opacity:.65">' + esc(r.path) + "</div></td>" +
+        '<td class="num">' + setupChip(r.state) + "</td>" +
+        "<td>" + esc(r.detail) + "</td>" +
+        '<td class="num">' + act + "</td>" +
+      "</tr>";
+    }).join("");
+    box.innerHTML =
+      '<div class="acct-sum">' +
+        "<span>客户端 <b>" + (d.rows || []).length + "</b> 个</span>" +
+        "<span>待处理 <b>" + (d.need || 0) + "</b></span>" +
+        '<span class="hub-hint">DSH / ZCode 写入前自动备份</span>' +
+        '<button class="key key-checkin key-mini" data-onboard="1" style="margin-left:auto">一键接入</button>' +
+      "</div>" +
+      '<table class="acct-table"><thead><tr><th>客户端</th><th>状态</th><th>当前情况</th><th>操作</th></tr></thead><tbody>' +
+        rows + "</tbody></table>" +
+      '<div id="setupPreview" style="display:none"></div>';
+    if (sum) {
+      sum.innerHTML = d.need
+        ? '<span style="color:#B4231A">待处理 <b>' + d.need + "</b></span>"
+        : "<span>全部已接入</span>";
+    }
+  }
+
+  async function refreshSetup() {
+    try {
+      renderSetup(await api("agent_setup_status"));
+    } catch (e) {
+      renderSetup({ ok: false, message: String(e) });
+    }
+  }
+
+  function setupChangeLine(c) {
+    if (c.field) return c.provider + " · " + c.field + "：" + c.from + " → " + c.to;
+    const tail = c.action === "已就绪" ? "" : "（" + c.from + " → " + c.to + "）";
+    return c.provider + "（" + c.id + "）：" + c.action + tail;
+  }
+
+  function setupPreviewHtml(p, key) {
+    if (!p || p.ok === false) {
+      return '<div class="acct-empty">' + esc((p && p.message) || "预览失败") + "</div>";
+    }
+    const notes = (p.notes || []).map((n) => "· " + n).join("\n");
+    if (p.manual) {
+      return '<div class="hub-sub">手动接入片段<span class="hub-hint" style="margin-left:8px">' +
+          esc(p.target || "") + "</span></div>" +
+        '<pre class="hub-out" style="display:block">' + esc(p.snippet || "") + "</pre>" +
+        (notes ? '<div class="hub-hint" style="white-space:pre-line;margin:4px 2px">' + esc(notes) + "</div>" : "") +
+        '<div class="hub-actions">' +
+          '<button class="key key-quiet key-mini" data-setup-copy="' + esc(p.snippet || "") + '">复制片段</button>' +
+          '<span class="hub-hint">不自动写入；按上面的路径手动合并</span>' +
+        "</div>";
+    }
+    const changes = p.changes || [];
+    const missing = p.missing || [];
+    const body = changes.length
+      ? '<pre class="hub-out" style="display:block">' + esc(changes.map(setupChangeLine).join("\n")) + "</pre>"
+      : '<div class="acct-empty">已经是最新，无需写入</div>';
+    const warn = missing.length
+      ? '<div class="hub-warn">缺少 provider：' + esc(missing.join(" / ")) +
+        "。自动写入不会新增 provider，请先手动接入。</div>"
+      : "";
+    const applyBtn = (changes.length && !missing.length)
+      ? '<button class="key key-checkin key-mini" data-setup-apply="' + esc(key) + '">备份并写入</button>'
+      : "";
+    return '<div class="hub-sub">变更预览<span class="hub-hint" style="margin-left:8px">' +
+        esc(p.target || "") + "</span></div>" +
+      '<div class="hub-hint" style="margin:0 2px 4px">' + esc(p.backup || "") + "</div>" +
+      warn + body +
+      (notes ? '<div class="hub-hint" style="white-space:pre-line;margin:4px 2px">' + esc(notes) + "</div>" : "") +
+      '<div class="hub-actions">' + applyBtn +
+        '<button class="key key-quiet key-mini" data-setup-cancel="1">取消</button>' +
+      "</div>";
+  }
+
+  async function openSetupPreview(key) {
+    const box = document.getElementById("setupPreview");
+    if (!box) return;
+    box.style.display = "block";
+    box.innerHTML = '<div class="acct-empty">读取预览…</div>';
+    try {
+      box.innerHTML = setupPreviewHtml(await api("agent_setup_preview", key), key);
+    } catch (e) {
+      box.innerHTML = '<div class="acct-empty">预览失败：' + esc(String(e)) + "</div>";
+    }
+  }
+
+  async function applySetup(key, btn) {
+    const okGo = confirm(
+      "将先备份、再写入本机客户端配置。\n\n" +
+      "客户端：" + key + "\n\n" +
+      "确定继续吗？");
+    if (!okGo) return;
+    btn.disabled = true;
+    const old = btn.textContent;
+    btn.textContent = "写入中…";
+    try {
+      const r = await api("agent_setup_apply", key);
+      if (r && r.ok) {
+        toast((r.message || "已写入") + (r.backup ? " · 已备份" : ""), "ok");
+        await refreshSetup();
+        refreshEnv(true);
+        const box = document.getElementById("setupPreview");
+        if (box) {
+          box.style.display = "block";
+          box.innerHTML = '<div class="acct-empty">' + esc((r.message || "已写入") +
+            (r.backup ? "；备份：" + r.backup : "")) + "</div>";
+        }
+      } else {
+        toast((r && r.message) || "写入失败", "warn");
+      }
+    } catch (e) {
+      toast("写入失败：" + e, "warn");
+    } finally {
+      if (btn.isConnected) { btn.disabled = false; btn.textContent = old; }
+    }
+  }
+
+  function initSetupSection() {
+    const sec = document.getElementById("setupSec");
+    const head = document.getElementById("setupSecHead");
+    if (!sec || !head) return;
+    head.addEventListener("click", () => {
+      const open = sec.classList.toggle("open");
+      head.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) refreshSetup();
+    });
+    document.getElementById("setupContent").addEventListener("click", (ev) => {
+      const previewBtn = ev.target.closest("button[data-setup-preview]");
+      if (previewBtn) { openSetupPreview(previewBtn.dataset.setupPreview); return; }
+      const applyBtn = ev.target.closest("button[data-setup-apply]");
+      if (applyBtn) { applySetup(applyBtn.dataset.setupApply, applyBtn); return; }
+      const copyBtn = ev.target.closest("button[data-setup-copy]");
+      if (copyBtn) { copyText(copyBtn.dataset.setupCopy || ""); return; }
+      const onboardBtn = ev.target.closest("button[data-onboard]");
+      if (onboardBtn) { openOnboard(); return; }
+      if (ev.target.closest("button[data-setup-cancel]")) {
+        const box = document.getElementById("setupPreview");
+        if (box) box.style.display = "none";
+      }
+    });
+  }
+
+  // ============ 一键接入向导 ============
+  const OB_CLIENT_LABEL = { dsh: "DSH", zcode: "ZCode", claude: "Claude Code", codex: "Codex" };
+  const OB_GLYPH = { ok: "✓", warn: "!", fail: "×", running: "↻", pending: "·", skip: "–" };
+  const OB_STATE_TEXT = { ok: "已接入", warn: "待处理", fail: "异常", pending: "等待" };
+  let obPlanBlocked = false;
+  let obPollTimer = 0;
+
+  function obMask() { return document.getElementById("onboardMask"); }
+
+  function obSetFoot(html) {
+    const foot = document.getElementById("obFoot");
+    if (foot) foot.innerHTML = html;
+  }
+
+  function obStopPoll() {
+    if (obPollTimer) { clearTimeout(obPollTimer); obPollTimer = 0; }
+  }
+
+  function closeOnboard() {
+    obStopPoll();
+    const mask = obMask();
+    if (!mask) return;
+    if (mask.__onKey) document.removeEventListener("keydown", mask.__onKey);
+    mask.remove();
+  }
+
+  function openOnboard() {
+    if (obMask()) return;
+    const mask = document.createElement("div");
+    mask.className = "qmodal-mask";
+    mask.id = "onboardMask";
+    mask.innerHTML =
+      '<div class="qmodal ob-modal" role="dialog" aria-modal="true" aria-label="一键接入">' +
+        '<div class="qmodal-head"><h3>一键接入</h3><span class="q-sub" id="obSub">检测中…</span></div>' +
+        '<div class="qmodal-body" id="obBody"><div class="acct-empty">检测中…</div></div>' +
+        '<div class="qmodal-foot" id="obFoot"></div>' +
+      "</div>";
+    document.body.appendChild(mask);
+
+    mask.__onKey = (ev) => { if (ev.key === "Escape") closeOnboard(); };
+    document.addEventListener("keydown", mask.__onKey);
+
+    mask.addEventListener("click", (ev) => {
+      if (ev.target === mask) { closeOnboard(); return; }
+      const btn = ev.target.closest("button[data-ob]");
+      if (!btn || btn.disabled) return;
+      const act = btn.dataset.ob;
+      if (act === "close") closeOnboard();
+      else if (act === "hide") { closeOnboard(); toast("任务在后台继续，再打开面板可看结果", "ok"); }
+      else if (act === "start") obStart(btn);
+      else if (act === "replan") { obStopPoll(); loadOnboardPlan(true); }
+      else if (act === "copy") obCopySnippet(btn.dataset.key);
+    });
+    mask.addEventListener("change", (ev) => {
+      if (ev.target.matches("input[data-ob-client]")) obSyncStartBtn();
+    });
+
+    // 任务在跑、或 10 分钟内刚跑完，展示它；更早的结果直接重新检测
+    api("onboard_status").then((r) => {
+      if (!obMask()) return;
+      const job = r && r.job;
+      const fresh = job && job.done && job.updated &&
+        (Date.now() / 1000 - job.updated) < 600;
+      if (job && (job.running || fresh)) {
+        renderOnboardJob(job);
+        if (job.running) obPoll();
+        return;
+      }
+      loadOnboardPlan(false);
+    }).catch(() => {
+      if (obMask()) loadOnboardPlan(false);
+    });
+  }
+
+  async function loadOnboardPlan(force) {
+    const body = document.getElementById("obBody");
+    if (!body) return;
+    body.innerHTML = '<div class="acct-empty">检测客户端、网关与占位 token…</div>';
+    const sub = document.getElementById("obSub");
+    if (sub) sub.textContent = "检测中…";
+    obSetFoot("");
+    try {
+      const plan = await api("onboard_plan", !!force);
+      if (!body.isConnected) return;
+      renderOnboardPlan(plan);
+    } catch (e) {
+      if (!body.isConnected) return;
+      body.innerHTML = '<div class="ob-badbox">检测失败：' + esc(String(e)) + "</div>";
+      obSetFoot('<button class="key key-quiet key-mini" data-ob="replan">重试</button>' +
+                '<button class="key key-checkin key-mini" data-ob="close">关闭</button>');
+    }
+  }
+
+  function renderOnboardPlan(p) {
+    const body = document.getElementById("obBody");
+    if (!body) return;
+    if (!p || p.ok === false) {
+      body.innerHTML = '<div class="ob-badbox">检测失败：' + esc((p && p.message) || "未知错误") + "</div>";
+      obSetFoot('<button class="key key-quiet key-mini" data-ob="replan">重试</button>' +
+                '<button class="key key-checkin key-mini" data-ob="close">关闭</button>');
+      return;
+    }
+    obPlanBlocked = !!p.blocked;
+    const sub = document.getElementById("obSub");
+    if (sub) sub.textContent = p.blocked ? "环境有阻塞项" : ("检测完成 · " + (p.need || 0) + " 个客户端待处理");
+
+    const out = [];
+    const issues = p.issues || [];
+    if (issues.length) {
+      out.push('<div class="ob-issues">还有环境问题没解决（红色项会阻断接入）：<ul>' +
+        issues.map((i) => "<li>" + esc(i.group) + " · " + esc(i.label) +
+          (i.detail ? "：" + esc(i.detail) : "") +
+          (i.impact ? "（" + esc(i.impact) + "）" : "") + "</li>").join("") +
+        "</ul></div>");
+    }
+
+    out.push('<div class="ob-label">网关</div><div class="ob-gws">');
+    (p.gateways || []).forEach((g) => {
+      out.push('<span class="ob-gw' + (g.running ? " on" : "") + (g.optional ? " opt" : "") +
+        '" title="' + esc(g.note || "") + '"><i></i>' + esc(g.name) +
+        " · " + esc(g.port == null ? "—" : String(g.port)) +
+        (g.optional ? " · 可选" : "") + "</span>");
+    });
+    out.push("</div>");
+    out.push('<div class="ob-note">Qoder 账号池：' +
+      (p.qoder_accounts ? esc(String(p.qoder_accounts)) + " 个账号"
+                        : "空（执行时会先尝试导入本机登录态）") + "</div>");
+
+    const toks = p.tokens || [];
+    if (toks.length) {
+      out.push('<div class="ob-label">占位 token</div><div class="ob-note">' +
+        "按所选客户端补缺，已存在的不覆盖：" +
+        toks.map((t) => esc(t.env) + (t.set ? " ✓" : " 待补")).join(" · ") + "</div>");
+    }
+
+    out.push('<div class="ob-label">客户端</div>');
+    out.push('<div class="ob-note">勾选要接入的客户端：DSH / ZCode 自动写入（写前备份）；' +
+             "Claude Code / Codex 只给可复制片段。</div>");
+    out.push('<div class="ob-clients">');
+    (p.clients || []).forEach((c) => {
+      const dis = !c.exists;
+      const kind = c.write ? '<span class="ob-tag">自动写入</span>'
+                           : '<span class="ob-tag manual">仅片段</span>';
+      const stateTag = dis ? '<span class="ob-tag">未安装</span>'
+        : c.state === "ok" ? '<span class="ob-tag">已接入</span>'
+        : '<span class="ob-tag">' + (c.write ? "待写入" : "待合并") + "</span>";
+      out.push('<label class="ob-client' + (dis ? " is-dis" : "") + '">' +
+        '<input type="checkbox" data-ob-client="' + esc(c.key) + '"' +
+          (c.selected ? " checked" : "") + (dis ? " disabled" : "") + ">" +
+        '<span class="ob-cmain"><span class="ob-cname">' + esc(c.label) + kind + stateTag + "</span>" +
+          (c.path ? '<div class="ob-cmeta">' + esc(c.path) + "</div>" : "") +
+          '<div class="ob-cdetail">' + esc(c.detail || c.note || "") + "</div>" +
+        "</span></label>");
+    });
+    out.push("</div>");
+    body.innerHTML = out.join("");
+
+    obSetFoot('<span class="ob-foot-note">只写占位 token；DSH / ZCode 改配置前自动备份</span>' +
+      '<button class="key key-quiet key-mini" data-ob="close">取消</button>' +
+      '<button class="key key-checkin" data-ob="start">开始接入</button>');
+    obSyncStartBtn();
+  }
+
+  function obSyncStartBtn() {
+    const mask = obMask();
+    if (!mask) return;
+    const btn = mask.querySelector('button[data-ob="start"]');
+    if (!btn) return;
+    const n = mask.querySelectorAll("input[data-ob-client]:checked").length;
+    if (obPlanBlocked) { btn.disabled = true; btn.textContent = "先修复环境"; return; }
+    btn.disabled = n === 0;
+    btn.textContent = n ? "开始接入（" + n + " 个）" : "开始接入";
+  }
+
+  async function obStart(btn) {
+    const mask = obMask();
+    if (!mask) return;
+    const keys = Array.from(mask.querySelectorAll("input[data-ob-client]:checked"))
+      .map((x) => x.dataset.obClient);
+    if (!keys.length) { toast("先勾选要接入的客户端", "warn"); return; }
+    const old = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "启动中…";
+    try {
+      const r = await api("onboard_start", keys);
+      if (!r || !r.ok) {
+        toast((r && r.message) || "无法开始一键接入", "warn");
+        if (btn.isConnected) { btn.disabled = false; btn.textContent = old; }
+        return;
+      }
+      const body = document.getElementById("obBody");
+      if (body) body.innerHTML = '<div class="acct-empty">任务已启动，等待第一步…</div>';
+      obSetFoot('<span class="ob-foot-note">执行需要几十秒；关掉这个对话框会后台继续（别退出面板）</span>' +
+                '<button class="key key-quiet key-mini" data-ob="hide">后台运行</button>');
+      obPoll();
+    } catch (e) {
+      toast("启动失败：" + e, "warn");
+      if (btn.isConnected) { btn.disabled = false; btn.textContent = old; }
+    }
+  }
+
+  async function obPoll() {
+    obStopPoll();
+    if (!obMask()) return;
+    let job = null;
+    try {
+      const r = await api("onboard_status");
+      job = r && r.job;
+    } catch (e) { /* 读状态偶发失败时继续轮询 */ }
+    if (!obMask()) return;
+    if (!job) { obPollTimer = setTimeout(obPoll, 1500); return; }
+    renderOnboardJob(job);
+    if (job.running) {
+      obPollTimer = setTimeout(obPoll, 700);
+    } else {
+      refreshSetup();
+      refreshEnv(true);
+      poll();
+    }
+  }
+
+  function obStepHtml(step) {
+    const st = step.state || "pending";
+    const items = (step.items || []).map((it) => {
+      const s = it.state || "pending";
+      return '<div class="ob-item ' + esc(s) + '"><span class="st">' + (OB_GLYPH[s] || "·") +
+        '</span><span class="msg">' + esc(it.label) +
+        (it.message ? " · " + esc(it.message) : "") + "</span></div>";
+    }).join("");
+    return '<div class="ob-step"><span class="ob-icon ' + esc(st) + '">' + (OB_GLYPH[st] || "·") +
+      '</span><div class="ob-stepmain"><div class="ob-steptitle">' + esc(step.label) + "</div>" +
+      '<div class="ob-stepitems">' + items + "</div></div></div>";
+  }
+
+  function renderOnboardJob(job) {
+    const body = document.getElementById("obBody");
+    if (!body) return;
+    const running = !!job.running;
+    const done = !!job.done;
+    const elapsed = job.elapsed || (running && job.started
+      ? Math.max(0, Math.round(Date.now() / 1000 - job.started)) : 0);
+
+    const sub = document.getElementById("obSub");
+    if (sub) {
+      if (running) {
+        sub.textContent = "执行中 · " + elapsed + "s";
+      } else if (done) {
+        const when = job.started
+          ? new Date(job.started * 1000).toLocaleTimeString("zh-CN", { hour12: false }) : "";
+        sub.textContent = (job.ok ? "完成" : "有未完成项") +
+          (job.elapsed ? " · " + job.elapsed + "s" : "") + (when ? " · " + when : "");
+      } else {
+        sub.textContent = "";
+      }
+    }
+
+    const out = [];
+    if (done && job.result) out.push(obResultHtml(job.result));
+    out.push('<div class="ob-label">执行进度</div>');
+    out.push((job.steps || []).map(obStepHtml).join(""));
+    body.innerHTML = out.join("");
+
+    if (running) {
+      obSetFoot('<span class="ob-foot-note">已用 ' + elapsed +
+        "s；AutoClaw 首次启动较慢（票据续期最多 90s）；关掉对话框会后台继续</span>" +
+        '<button class="key key-quiet key-mini" data-ob="hide">后台运行</button>');
+    } else if (done) {
+      obSetFoot('<span class="ob-foot-note">配置改动已备份；DSH 需完全退出再启动</span>' +
+        '<button class="key key-quiet key-mini" data-ob="replan">再检查一次</button>' +
+        '<button class="key key-checkin key-mini" data-ob="close">关闭</button>');
+    } else {
+      obSetFoot('<button class="key key-quiet key-mini" data-ob="close">关闭</button>');
+    }
+  }
+
+  function obResultHtml(res) {
+    const bad = !res.ok;
+    const out = ['<div class="' + (bad ? "ob-badbox" : "ob-okbox") + '">' +
+      esc(res.message || (bad ? "部分步骤未完成" : "接入完成")) + "</div>"];
+
+    const envRows = res.env || [];
+    if (envRows.length) {
+      out.push('<div class="ob-label">占位 token</div><div class="ob-note">' +
+        envRows.map((e) => esc(e.env) + " " +
+          (e.action === "set" ? "已补" : e.action === "exists" ? "已存在" : "失败")).join(" · ") +
+        "</div>");
+    }
+
+    const gws = res.gateways || [];
+    if (gws.length) {
+      out.push('<div class="ob-label">网关</div>');
+      gws.forEach((g) => {
+        const st = g.ok ? "ok" : (g.optional ? "warn" : "fail");
+        out.push('<div class="ob-item ' + st + '"><span class="st">' + OB_GLYPH[st] +
+          '</span><span class="msg">' + esc(g.name || g.key) +
+          (g.port ? " · " + esc(String(g.port)) : "") + " · " +
+          esc(g.note || (g.ok ? "在线" : "未启动")) + "</span></div>");
+      });
+    }
+
+    const cfgs = res.configs || [];
+    if (cfgs.length) {
+      out.push('<div class="ob-label">配置写入</div>');
+      cfgs.forEach((c) => {
+        const st = c.ok ? (c.manual ? "warn" : "ok") : "fail";
+        out.push('<div class="ob-item ' + st + '"><span class="st">' + OB_GLYPH[st] +
+          '</span><span class="msg">' + esc(c.label || c.key) + " · " + esc(c.message || "") +
+          (c.backup ? " · 备份 " + esc(c.backup) : "") + "</span></div>");
+      });
+    }
+
+    const snippets = res.snippets || {};
+    Object.keys(snippets).forEach((key) => {
+      out.push('<div class="ob-label">' + esc(OB_CLIENT_LABEL[key] || key) + "（手动合并）</div>" +
+        '<pre class="ob-snippet" id="obSnip-' + esc(key) + '">' + esc(snippets[key]) + "</pre>" +
+        '<div class="hub-actions"><button class="key key-quiet key-mini" data-ob="copy" data-key="' +
+        esc(key) + '">复制片段</button></div>');
+    });
+
+    const verify = res.verify || {};
+    const sum = verify.env_summary || {};
+    out.push('<div class="ob-label">自检</div><div class="ob-sum">' +
+      "<span>环境自检 <b>" + esc(String(sum.ok || 0)) + "</b> 正常 · <b>" +
+      esc(String(sum.warn || 0)) + "</b> 提醒 · <b>" + esc(String(sum.fail || 0)) + "</b> 失败</span>" +
+      (verify.qoder_accounts != null
+        ? "<span>Qoder 账号 <b>" + esc(String(verify.qoder_accounts)) + "</b></span>" : "") +
+      "</div>");
+    (verify.configs || []).forEach((c) => {
+      const st = c.state || "pending";
+      out.push('<div class="ob-item ' + esc(st) + '"><span class="st">' + (OB_GLYPH[st] || "·") +
+        '</span><span class="msg">' + esc(c.label) + " · " + esc(OB_STATE_TEXT[st] || st) +
+        (c.detail ? " · " + esc(c.detail) : "") + "</span></div>");
+    });
+    if ((res.clients || []).indexOf("dsh") >= 0) {
+      out.push('<div class="ob-note" style="margin-top:6px">' +
+        "DSH 刚写完配置：要完全退出 DSH 再启动才生效。</div>");
+    }
+    return out.join("");
+  }
+
+  function obCopySnippet(key) {
+    const pre = document.getElementById("obSnip-" + key);
+    if (pre) copyText(pre.textContent || "");
+  }
+
+  // ============ 启动与端口（自启登记 + 端口归因）============
+  const BOOT_PORT_STATE = {
+    gateway: ["本网关", "chip-ok"],
+    other: ["被占用", "chip-warn"],
+    unknown: ["检测中", "chip-unknown"],
+    free: ["空闲", "chip-unknown"],
+  };
+
+  function bootPortChip(row) {
+    const [txt, cls] = BOOT_PORT_STATE[row.state] || [row.text || row.state, "chip-unknown"];
+    return '<span class="chip ' + cls + '">' + esc(txt) + "</span>";
+  }
+
+  function renderStartup(d) {
+    const box = document.getElementById("bootContent");
+    const sum = document.getElementById("bootSecSum");
+    if (!box) return;
+    if (!d || d.ok === false) {
+      box.innerHTML = '<div class="acct-empty">' + esc((d && d.message) || "读取启动与端口失败") + "</div>";
+      if (sum) sum.innerHTML = "";
+      return;
+    }
+    const st = d.startup || {};
+    const on = !!st.enabled;
+    const blocked = on && st.approved === false;
+    const chip = !on
+      ? '<span class="chip chip-unknown">未开启</span>'
+      : blocked
+        ? '<span class="chip chip-warn">系统禁用</span>'
+        : (st.matches ? '<span class="chip chip-ok">已开启</span>'
+                      : '<span class="chip chip-warn">命令不一致</span>');
+    const action = (!on || blocked || !st.matches) ? "on" : "off";
+    const label = !on ? "开启自启"
+      : blocked ? "重新启用"
+      : (!st.matches ? "更新为当前命令" : "关闭自启");
+    const btn = st.supported === false ? ""
+      : '<button class="key key-quiet key-mini" data-boot-toggle="' + action + '">' + label + "</button>";
+    const ports = d.ports || [];
+    const rows = ports.map((r) => (
+      "<tr>" +
+        "<td>" + esc(r.name) + "</td>" +
+        '<td class="num">' + esc(String(r.port)) + "</td>" +
+        '<td class="num">' + bootPortChip(r) +
+          (r.note ? '<div class="hub-hint" style="font-size:10px;opacity:.7">' + esc(r.note) + "</div>" : "") +
+        "</td>" +
+        "<td>" + (r.pid
+          ? '<span class="hub-hint">pid ' + esc(String(r.pid)) + " · " + esc(r.proc || "未知进程") + "</span>"
+          : '<span class="hub-hint">—</span>') +
+        "</td>" +
+      "</tr>"
+    )).join("");
+    const bad = ports.filter((r) => r.state === "other").length;
+    box.innerHTML =
+      '<div class="hub-sub">开机自启<span class="hub-hint" style="margin-left:8px">HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run · ' + esc(st.value || "AIProxyHubPanel") + "</span></div>" +
+      '<div class="acct-sum">' +
+        "<span>状态 " + chip + "</span>" +
+        '<span class="hub-hint">' + esc(st.message || "") + "</span>" +
+        '<span style="margin-left:auto">' + btn + "</span>" +
+      "</div>" +
+      '<div class="hub-hint" style="word-break:break-all;margin:0 2px 8px">' + esc(st.command || "") + "</div>" +
+      (on && !st.matches && st.stored
+        ? '<div class="hub-hint" style="word-break:break-all;margin:0 2px 8px">已登记：' + esc(st.stored) + "</div>"
+        : "") +
+      (blocked
+        ? '<div class="hub-warn">启动项已被系统禁用（任务管理器 / 设置里关过），点「重新启用」会恢复。</div>'
+        : "") +
+      '<div class="hub-actions" style="justify-content:space-between;margin:10px 2px 4px">' +
+        '<span class="hub-sub" style="margin:0">网关端口</span>' +
+        '<button class="key key-quiet key-mini" id="bootRefresh">重新检测</button>' +
+      "</div>" +
+      '<table class="acct-table"><thead><tr><th>网关</th><th>端口</th><th>状态</th><th>监听进程</th></tr></thead><tbody>' +
+        rows + "</tbody></table>" +
+      (bad
+        ? '<div class="hub-warn">' + bad + " 个端口被其他程序占用：对应网关会启动失败或连到错误的服务，先确认那个进程是什么。</div>"
+        : "");
+    if (sum) {
+      sum.innerHTML = "<span>" + (on ? "自启 开" : "自启 关") + "</span>" +
+        (bad
+          ? '<span style="color:#B4231A">端口冲突 <b>' + bad + "</b></span>"
+          : "<span>端口正常</span>");
+    }
+  }
+
+  let bootLoading = false;
+  async function refreshStartup(force) {
+    const box = document.getElementById("bootContent");
+    if (!box || (bootLoading && !force)) return;
+    bootLoading = true;
+    if (force) box.innerHTML = '<div class="acct-empty">检测中…</div>';
+    try {
+      renderStartup(await api("startup_status", !!force));
+    } catch (e) {
+      renderStartup({ ok: false, message: String(e) });
+    } finally {
+      bootLoading = false;
+    }
+  }
+
+  async function toggleStartup(btn) {
+    const turnOn = btn.dataset.bootToggle === "on";
+    if (turnOn && !confirm(
+      "将在注册表登记开机自启：\n\n" +
+      "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\n" +
+      "AIProxyHubPanel = 当前面板启动命令\n\n" +
+      "如果被安全软件拦截，面板会提示失败而不是假装成功。\n\n" +
+      "登录 Windows 后自动打开面板（不自动启动网关）。继续吗？")) return;
+    btn.disabled = true;
+    btn.textContent = turnOn ? "登记中…" : "移除中…";
+    try {
+      const r = await api("startup_set", turnOn);
+      if (r && r.ok) toast(r.message || (turnOn ? "已开启自启" : "已关闭自启"), "ok");
+      else toast((r && r.message) || "设置失败", "warn");
+    } catch (e) {
+      toast("设置失败：" + e, "warn");
+    } finally {
+      await refreshStartup(true);
+    }
+  }
+
+  function initBootSection() {
+    const sec = document.getElementById("bootSec");
+    const head = document.getElementById("bootSecHead");
+    if (!sec || !head) return;
+    head.addEventListener("click", () => {
+      const open = sec.classList.toggle("open");
+      head.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) refreshStartup(false);
+    });
+    document.getElementById("bootContent").addEventListener("click", (ev) => {
+      if (ev.target.closest("#bootRefresh")) { refreshStartup(true); return; }
+      const btn = ev.target.closest("button[data-boot-toggle]");
+      if (btn) toggleStartup(btn);
+    });
+  }
+
+  // ============ 定时签到（Windows 计划任务 AI每日签到）============
+  function checkinChip(d) {
+    if (!d || d.ok === false) return '<span class="chip chip-unknown">读取失败</span>';
+    if (!d.exists) return '<span class="chip chip-unknown">未安装</span>';
+    if (d.state === "Disabled") return '<span class="chip chip-warn">已禁用</span>';
+    return '<span class="chip chip-ok">已启用</span>';
+  }
+
+  function renderCheckinSchedule(d) {
+    const btn = document.getElementById("checkinSched");
+    const time = document.getElementById("checkinSchedTime");
+    const pop = document.getElementById("checkinPop");
+    if (!btn || !time || !pop) return;
+    const ok = d && d.ok !== false;
+    const exists = ok && !!d.exists;
+    const disabled = exists && d.state === "Disabled";
+    const at = exists ? (d.time || "09:00") : "";
+    btn.classList.toggle("on", exists && !disabled);
+    btn.classList.toggle("off", exists && disabled);
+    if (!ok) {
+      time.textContent = "—";
+      btn.title = (d && d.message) || "读取计划任务失败";
+      pop.innerHTML = '<div class="checkin-pop-head"><b>定时签到</b></div>' +
+        '<div class="checkin-pop-meta">' + esc((d && d.message) || "读取计划任务失败") + "</div>";
+      return;
+    }
+    time.textContent = exists ? at + (disabled ? " · 停" : "") : "未装";
+    btn.title = exists
+      ? "每天 " + at + (disabled ? "（任务已禁用）" : "") + " 自动签到，点击修改"
+      : "未安装定时签到，点击设置";
+    const last = d.last_run
+      ? esc(d.last_run) + " · " + esc(d.last_result_text || ("退出码 " + d.last_result))
+      : "尚未运行";
+    pop.innerHTML =
+      '<div class="checkin-pop-head"><b>定时签到</b>' + checkinChip(d) + "</div>" +
+      '<div class="checkin-pop-row">' +
+        '<label for="checkinAt">每天</label>' +
+        '<input id="checkinAt" class="checkin-time" type="time" step="60" value="' + esc(at || "09:00") + '">' +
+        '<button type="button" class="key key-primary key-mini" data-checkin-save>' + (exists ? "保存" : "安装") + "</button>" +
+      "</div>" +
+      '<div class="checkin-pop-meta">上次 ' + last + "<br>下次 " + (d.next_run ? esc(d.next_run) : "—") + "</div>" +
+      '<div class="checkin-pop-foot">' +
+        '<span class="hub-hint">' + (disabled ? "保存会重新启用它" : "改时间即更新同一任务") + "</span>" +
+        (exists ? '<button type="button" class="sched-link" data-checkin-remove>移除任务</button>' : "") +
+      "</div>";
+  }
+
+  let checkinScheduleLoading = false;
+  async function refreshCheckinSchedule() {
+    if (checkinScheduleLoading) return;
+    checkinScheduleLoading = true;
+    try {
+      renderCheckinSchedule(await api("checkin_schedule_status"));
+    } catch (e) {
+      renderCheckinSchedule({ ok: false, message: String(e) });
+    } finally {
+      checkinScheduleLoading = false;
+    }
+  }
+
+  function setCheckinPop(open) {
+    const btn = document.getElementById("checkinSched");
+    const pop = document.getElementById("checkinPop");
+    if (!btn || !pop) return;
+    pop.hidden = !open;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (!open) return;
+    if (!pop.innerHTML.trim()) {
+      pop.innerHTML = '<div class="checkin-pop-head"><b>定时签到</b></div>' +
+        '<div class="checkin-pop-meta">读取计划任务…</div>';
+    }
+    refreshCheckinSchedule();
+  }
+
+  async function saveCheckinSchedule(btn) {
+    const input = document.getElementById("checkinAt");
+    const at = input ? input.value : "";
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(at)) {
+      toast("时间格式应为 HH:mm", "warn");
+      return;
+    }
+    if (!confirm(
+      "将注册 / 更新 Windows 计划任务「AI每日签到」：\n\n" +
+      "每天 " + at + " 静默运行 daily_checkin.py（WorkBuddy + 豆包）\n" +
+      "错过（关机 / 休眠）会在开机后尽快补跑。\n\n继续吗？")) return;
+    btn.disabled = true;
+    const old = btn.textContent;
+    btn.textContent = "写入中…";
+    try {
+      const r = await api("checkin_schedule_set", at);
+      if (r && r.ok) toast(r.message || ("已设为每天 " + at), "ok");
+      else toast((r && r.message) || "设置失败", "warn");
+      if (r && r.schedule) renderCheckinSchedule(r.schedule);
+      else await refreshCheckinSchedule();
+    } catch (e) {
+      toast("设置失败：" + e, "warn");
+    } finally {
+      if (btn.isConnected) { btn.disabled = false; btn.textContent = old; }
+    }
+  }
+
+  async function removeCheckinSchedule(btn) {
+    if (!confirm(
+      "移除 Windows 计划任务「AI每日签到」？\n\n" +
+      "移除后不再自动签到；面板里的手动「签到」按钮不受影响。\n\n继续吗？")) return;
+    btn.disabled = true;
+    const old = btn.textContent;
+    btn.textContent = "移除中…";
+    try {
+      const r = await api("checkin_schedule_remove");
+      if (r && r.ok) toast(r.message || "已移除定时签到", "ok");
+      else toast((r && r.message) || "移除失败", "warn");
+      if (r && r.schedule) renderCheckinSchedule(r.schedule);
+      else await refreshCheckinSchedule();
+    } catch (e) {
+      toast("移除失败：" + e, "warn");
+    } finally {
+      if (btn.isConnected) { btn.disabled = false; btn.textContent = old; }
+    }
+  }
+
+  function initCheckinSection() {
+    const wrap = document.getElementById("checkinWrap");
+    const btn = document.getElementById("checkinSched");
+    const pop = document.getElementById("checkinPop");
+    if (!wrap || !btn || !pop) return;
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      setCheckinPop(pop.hidden);
+    });
+    pop.addEventListener("click", (ev) => {
+      const save = ev.target.closest("button[data-checkin-save]");
+      if (save) { saveCheckinSchedule(save); return; }
+      const rm = ev.target.closest("button[data-checkin-remove]");
+      if (rm) removeCheckinSchedule(rm);
+    });
+    document.addEventListener("click", (ev) => {
+      if (!pop.hidden && !wrap.contains(ev.target)) setCheckinPop(false);
+    });
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape" && !pop.hidden) setCheckinPop(false);
+    });
+  }
+
+  async function refreshUsage() {
+    try {
+      const j = await api("usage");
+      if (j && j.ok) renderUsage(j.usage);
+    } catch (e) {}
+  }
+
+  function offline(show) {
+    $("#offline").classList.toggle("show", !!show);
+    if (show && !offlineNoted) {
+      offlineNoted = true;
+      $("#updated").textContent = "后端未连接";
+    }
+  }
+
+  async function api(name) {
+    const args = Array.prototype.slice.call(arguments, 1);
+    if (demo) return demoApi(name, args);
+    if (!window.pywebview || !window.pywebview.api) throw new Error("pywebview 未就绪");
+    return window.pywebview.api[name].apply(window.pywebview.api, args);
+  }
+
+  function stateOf(p, data) {
+    if (data.busy && (data.busy === "all" || data.busy === p.key)) {
+      if (data.busy === "all") return { cls: "is-busy", label: "排队中" };
+      return { cls: "is-busy", label: p.running ? "停止中…" : "启动中…" };
+    }
+    return p.running ? { cls: "is-running", label: "运行中" } : { cls: "is-off", label: "已停止" };
+  }
+
+  // ---- 网关规格表（来自后端 gw_specs.py，前端不再重复写 agent 列表）----
+  // GW_SPECS: key -> spec；SPECS_READY 表示已成功拉取。
+  let GW_SPECS = {};
+  let SPECS_READY = false;
+
+  function loadSpecs(list) {
+    GW_SPECS = {};
+    (list || []).forEach((s) => { GW_SPECS[s.key] = s; });
+    SPECS_READY = !!list && list.length > 0;
+    // 签到刷新时间也由规格表驱动
+    Object.keys(GW_SPECS).forEach((k) => {
+      const cr = GW_SPECS[k].checkin_reset;
+      if (cr) CHECKIN_RESET[k] = { text: cr.text, tip: cr.tip };
+    });
+  }
+
+  /** 取某网关的能力集合。规格未就绪时回退到保守默认，避免界面闪空。 */
+  function specCaps(key) {
+    const s = GW_SPECS[key];
+    if (s && Array.isArray(s.caps)) return new Set(s.caps);
+    // 回退：老逻辑的并集，保证规格未就绪时界面不崩
+    return new Set(["start_stop", "checkin", "usage", "drawer"]);
+  }
+
+  /** 按能力位挑出 key 列表，替代散落各处的 p.key === "xxx" 判断 */
+  function keysWithCap(cap) {
+    const keys = Object.keys(GW_SPECS);
+    if (!keys.length) return ["auto", "wb", "qoder", "doubao"];  // 回退
+    return keys.filter((k) => specCaps(k).has(cap));
+  }
+
+  function specOf(key) {
+    return GW_SPECS[key] || {};
+  }
+
+  // 各家每日签到/积分的刷新时间（规格表未就绪时的兜底；就绪后以 gw_specs 为准）
+  const CHECKIN_RESET = {
+    qoder: { text: "每日 10:00 (UTC+8) 刷新", tip: "Qoder 官方规则：每日 10:00（北京时间）刷新名额，错过不补。" },
+    wb: { text: "每日 0:00 (本地) 刷新", tip: "WorkBuddy 按本地自然日零点轮转，今日额度到 0:00 重置。" },
+    doubao: { text: "每日 0:00 (本地) 刷新", tip: "豆包工作按本地自然日零点轮转，今日可用额度到 0:00 重置。" },
+    auto: { text: "每日 0:00 (本地) 刷新", tip: "AutoClaw 任务/灵感中心按本地自然日零点轮转，今日可领额度到 0:00 重置（国内+海外都认领）。" },
+  };
+
+  function channelHtml(p, data) {
+    const st = stateOf(p, data);
+    const working = data.busy === p.key;
+    const disabled = data.busy ? " disabled" : "";
+
+    // ---- 外部网关（用户手动接入）：无启停/签到/抽屉，只有状态+token+删除 ----
+    if (p.external) {
+      const lat = p.latency_ms == null ? "" : " / " + esc(p.latency_ms) + " ms";
+      return [
+        '<article class="channel ' + st.cls + '" data-key="' + esc(p.key) + '">',
+        '  <div class="port">',
+        '    <span class="port-number">' + esc(p.port) + "</span>",
+        '    <span class="port-proto">' + esc(p.proto) + " · 外部</span>",
+        "  </div>",
+        '  <div class="identity">',
+        '    <div class="name-row"><span class="brand-ico">' + brandIcon(p.key) + '</span><h2>' + esc(p.name) + '</h2><span class="state-slot"><span class="state"><i class="lamp"></i>' + esc(st.label) + "</span></span></div>",
+        '    <p class="note" title="' + esc(p.note) + '">' + esc(p.note) + "</p>",
+        '    <p class="channel-meta">进程自理 · 面板仅探活' + lat + "</p>",
+        "  </div>",
+        '  <div class="token">',
+        '    <span class="label">token</span>',
+        '    <span class="token-value"><code>' + esc(p.token || "(空)") + "</code>",
+        '      <button class="copy" data-act="copy" data-text="' + esc(p.token || "") + '" title="复制 token">复制</button></span>',
+        "  </div>",
+        '  <div class="row-actions">',
+        '    <button class="key key-stop" data-act="remove-ext" data-key="' + esc(p.key) + '" title="从面板移除（不影响网关进程）">移除</button>',
+        "  </div>",
+        "</article>",
+      ].join("");
+    }
+
+    const actionCls = p.running ? "key key-stop" : "key key-start";
+    const actionLabel = working ? (p.running ? "停止中…" : "启动中…") : (p.running ? "停止" : "启动");
+    const workingCls = working ? " is-working" : "";
+    const pid = p.pid ? "PID " + esc(p.pid) : "PID —";
+    const latency = p.latency_ms == null ? "" : " / " + esc(p.latency_ms) + " ms";
+    // 能力位驱动：不再按 p.key 写死各家差异（见 gw_specs.py）
+    const caps = specCaps(p.key);
+    const dashboard = (caps.has("dashboard") && p.running)
+      ? '<button class="key key-quiet key-mini" data-act="dashboard" data-key="' + esc(p.key) +
+        '"' + disabled + ' title="打开 ' + esc(p.name) + ' 面板">面板</button>'
+      : "";
+    const hasCheckin = caps.has("checkin");
+    const reset = CHECKIN_RESET[p.key];
+    const checkinBtn = hasCheckin
+      ? '<button class="key key-checkin" data-act="checkin" data-key="' + esc(p.key) + '"' +
+        disabled + (reset ? ' title="' + esc(reset.tip) + '"' : "") + '>签到</button>' +
+        (reset ? '<span class="checkin-reset" title="' + esc(reset.tip) + '">' + esc(reset.text) + "</span>" : "")
+      : "";
+    const expanded = window.__expanded && window.__expanded.has(p.key) ? " expanded" : "";
+    const arrow = caps.has("drawer")
+      ? '<button class="disclosure" data-act="detail" data-key="' + esc(p.key) + '"' + disabled +
+        ' aria-label="展开/收起账号与积分" title="查看账号与积分">›</button>'
+      : "";
+    return [
+      '<article class="channel ' + st.cls + expanded + '" data-key="' + esc(p.key) + '">',
+      '  <div class="port">',
+      '    <span class="port-number">' + esc(p.port) + "</span>",
+      '    <span class="port-proto">' + esc(p.proto) + "</span>",
+      "  </div>",
+      '  <div class="identity">',
+      '    <div class="name-row"><span class="brand-ico">' + brandIcon(p.key) + '</span><h2>' + esc(p.name) + '</h2>' + arrow + '<span class="state-slot">' + dashboard + '<span class="state"><i class="lamp"></i>' + esc(st.label) + "</span></span></div>",
+      '    <p class="note" title="' + esc(p.note) + '">' + esc(p.note) + "</p>",
+      '    <p class="channel-meta">' + pid + latency + "</p>",
+      "  </div>",
+      '  <div class="token">',
+      '    <span class="label">占位 token</span>',
+      '    <span class="token-value"><code>' + esc(p.token) + "</code>",
+      '      <button class="copy" data-act="copy" data-text="' + esc(p.token) + '" title="复制 token">复制</button></span>',
+      "  </div>",
+      '  <div class="row-actions">',
+      '    <button class="' + actionCls + workingCls + '" data-act="toggle" data-key="' + esc(p.key) + '"' + disabled + ">" + esc(actionLabel) + "</button>",
+      checkinBtn,
+      "  </div>",
+      '  <div class="drawer" data-drawer="' + esc(p.key) + '">',
+      '    <div class="drawer-body">' + (window.__expanded && window.__expanded.has(p.key) && window.__detailCache[p.key] ? window.__detailCache[p.key] : "点击上方箭头查看账号与积分…") + "</div>",
+      "  </div>",
+      "</article>"
+    ].join("");
+  }
+
+  function appMark(app) {
+    return APP_MARKS[app.key] || (app.label || "?").slice(0, 1);
+  }
+
+  function renderApps(apps, closing) {
+    if (!apps || !apps.length) return;
+    const closingSet = new Set(closing || []);
+    const sig = apps.map((a) => a.key + ":" + (a.exists ? "1" : "0") +
+      ":" + (closingSet.has(a.key) ? "1" : "0")).join("|");
+    if (sig === lastAppSignature) return;
+    lastAppSignature = sig;
+    $("#appButtons").innerHTML = apps.map((a) => {
+      const missing = !a.exists;
+      const busy = !missing && closingSet.has(a.key);
+      const openBtn = '<button class="app-key' + (missing ? " is-missing" : "") + (busy ? " is-busy" : "") + '" data-act="open-app" data-key="' + esc(a.key) + '"' +
+        ' title="' + esc(missing ? "未找到安装路径" : busy ? "正在关闭，稍候" : a.path) + '"' + (missing || busy ? " disabled" : "") + ">" +
+        '<span class="app-mark">' + esc(appMark(a)) + "</span>" +
+        '<span class="app-name">' + esc(a.label) + "</span>" +
+        '<span class="app-go">' + (missing ? "未找到" : busy ? "关闭中" : "打开") + "</span></button>";
+      const closeBtn = missing ? "" :
+        '<button class="app-close' + (busy ? " is-busy" : "") + '" data-act="close-app" data-key="' + esc(a.key) + '"' +
+        (busy ? " disabled" : "") +
+        ' title="' + (busy ? "正在关闭 " + esc(a.label) + "…" : "退出 " + esc(a.label)) + '" aria-label="关闭 ' + esc(a.label) + '">' +
+        (busy ? "关闭中…" : "关闭") + "</button>";
+      const removeBtn = a.custom
+        ? '<button class="app-close" data-act="remove-client" data-key="' + esc(a.key) + '"' +
+          ' title="从面板移除（不删文件）" aria-label="移除 ' + esc(a.label) + '">×</button>'
+        : "";
+      return '<span class="app-row">' + openBtn + closeBtn + removeBtn + "</span>";
+    }).join("") +
+      '<span class="app-row"><button type="button" class="app-key app-add" data-act="add-client"' +
+      ' title="选择一个程序加入面板"><span class="app-mark">＋</span>' +
+      '<span class="app-name">添加客户端</span></button></span>';
+  }
+
+  function renderLogs(logs) {
+    const sig = logs.map((x) => x.id).join(",");
+    if (sig === lastLogSignature) return;
+    lastLogSignature = sig;
+    const box = $("#logs");
+    if (!logs.length) {
+      box.innerHTML = '<div class="empty">暂无操作</div>';
+      return;
+    }
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    box.innerHTML = logs.map((x) =>
+      '<div class="logline ' + esc(x.level || "info") + '"><span class="t">' + esc(x.t) +
+      '</span><span class="msg">' + esc(x.text) + "</span></div>"
+    ).join("");
+    if (atBottom) box.scrollTop = box.scrollHeight;
+  }
+
+  function viewSignature(ps, busy) {
+    // 仅用结构性字段决定整卡重建；note/latency 波动不触发重建（见 syncCardMeta 轻量同步），
+    // 否则每轮抖动会把用户展开的抽屉冲掉。
+    return ps.map((p) => [p.key, p.running ? 1 : 0, p.pid, p.token, p.dashboard].join(":")).join("|") + "#" + busy;
+  }
+
+  function renderTicks(ps) {
+    const total = ps.length || 0;
+    const running = ps.filter((p) => p.running).length;
+    $("#runCount").textContent = running;
+    $("#runTotal").textContent = total;
+    $("#runTicks").innerHTML = ps.map((p) => '<i class="' + (p.running ? "on" : "") + '"></i>').join("");
+  }
+
+  function render(data) {
+    offline(false);
+    const ps = data.providers || [];
+    renderTicks(ps);
+    const sig = viewSignature(ps, data.busy || "");
+    if (sig !== lastViewSignature) {
+      lastViewSignature = sig;
+      $("#cards").innerHTML = ps.map((p) => channelHtml(p, data)).join("");
+      // 重建后回填已展开抽屉（若缓存存在则内联，避免先闪"点击箭头"占位）：
+      const checkinKeys = new Set(keysWithCap("drawer"));
+      const prevBusy = window.__prevBusy || "";
+      for (const key of window.__expanded) {
+        const card = document.querySelector('.channel[data-key="' + cssEscape(key) + '"]');
+        if (!card) continue;
+        const drawer = card.querySelector(".drawer-body");
+        if (!drawer) continue;
+        if (window.__detailCache[key]) {
+          drawer.innerHTML = window.__detailCache[key];
+          continue; // 有缓存就不重拉，保留用户当前看到的内容
+        }
+        if (!checkinKeys.has(key)) continue;
+        if (data.busy === key || data.busy === "all") {
+          loadDetail(key, true);
+        } else if (prevBusy === key || prevBusy === "all") {
+          window.__detailCache[key] = null;
+          loadDetail(key, false);
+        }
+        // 其他情况：保持缓存，不刷新
+      }
+      window.__prevBusy = data.busy || "";
+    } else {
+      // 结构未变（运行态/pid/token 都没变），只轻量同步 note/latency 文本。
+      // 不重建 DOM，避免把用户刚展开的抽屉冲掉。
+      for (const p of ps) {
+        const card = document.querySelector('.channel[data-key="' + cssEscape(p.key) + '"]');
+        if (!card) continue;
+        const noteEl = card.querySelector(".note");
+        if (noteEl) { noteEl.textContent = p.note || ""; noteEl.setAttribute("title", p.note || ""); }
+        const metaEl = card.querySelector(".channel-meta");
+        if (metaEl) {
+          const pid = p.pid ? "PID " + p.pid : "PID —";
+          const latency = p.latency_ms == null ? "" : " / " + p.latency_ms + " ms";
+          metaEl.textContent = pid + latency;
+        }
+      }
+    }
+    // 动作完成回执：后端每次动作结束都会写一条 last_result，前端按 id 变化弹提示。
+    // 不依赖 busy_name 翻转——Qoder 签到约 1 秒完成，容易落在两次 2.5 秒轮询之间，
+    // 那样用户只会看到“已开始签到”，永远等不到结果。
+    const lr = data.last_result;
+    if (lr) {
+      if (window.__lastResultId == null) {
+        window.__lastResultId = lr.id; // 首帧只记基线，不弹历史结果
+      } else if (lr.id !== window.__lastResultId) {
+        window.__lastResultId = lr.id;
+        const body = lr.message ? lr.label + "：" + lr.message : lr.label + "完成";
+        toast((lr.ok ? "✅ " : "⚠️ ") + body, lr.ok ? "ok" : "warn");
+      }
+    }
+    const prevBusyName = window.__prevBusyName || "";
+    if (prevBusyName && !data.busy_name && !lr) {
+      // 兜底：老路径没有回执时，busy_name 本身就是后端给的中文标签，直接用它。
+      toast("✅ " + prevBusyName + "完成", "ok");
+    }
+    window.__prevBusyName = data.busy_name || "";
+    renderApps(data.apps || [], data.closing || []);
+    renderLogs(data.logs || []);
+    $("#updated").textContent = fmtTime(data.updated) + (data.busy ? " / 正在执行" : "");
+  }
+
+  async function poll() {
+    try {
+      render(await api("status"));
+    } catch (err) {
+      offline(true);
+    }
+  }
+
+  async function act(name, args, fallback) {
+    try {
+      const result = await api(name, ...(args || []));
+      if (result && result.message) toast(result.message, result.ok ? "ok" : "warn");
+      else if (fallback) toast(fallback, "ok");
+      await poll();
+      return result;
+    } catch (err) {
+      toast("操作失败：" + (err && err.message ? err.message : err), "error");
+      return { ok: false };
+    }
+  }
+
+  if (!window.__expanded) window.__expanded = new Set();
+  if (!window.__detailCache) window.__detailCache = {};
+
+  // ============================================================
+  // 账号表格：统一列结构
+  // ============================================================
+  // 所有网关共用同一套列，新增 agent 只需在 DRAWER_MAP 里加一条 mapper：
+  //   { kind, title, empty, rows(detail), sum(detail), note(detail) }
+  // mapper 把各家原始字段规范成 { name, sub, quota, state, note }：
+  //   name  账号名
+  //   sub   名字下方的小字（套餐 / 桌面登录中等）
+  //   quota 额度/积分展示（字符串或 {text, pct} 用于进度条）
+  //   state { level: "ok"|"warn"|"unknown", text }  —— 临期、签到、可用性都归到这里
+  //   note  状态旁的补充说明（可选）
+  const STATE_CHIP = {
+    ok: "chip-ok",
+    warn: "chip-warn",
+    unknown: "chip-unknown",
+  };
+
+  function acctState(row) {
+    const s = row.state || {};
+    const level = STATE_CHIP[s.level] ? s.level : "unknown";
+    return '<span class="chip ' + STATE_CHIP[level] + '">' + esc(s.text || "—") + "</span>" +
+      (row.note ? '<span class="state-note">' + esc(row.note) + "</span>" : "") +
+      // 可选的行动按钮（如豆包切换账号），紧跟状态之后
+      (row.action ? '<div class="state-action">' + row.action + "</div>" : "");
+  }
+
+  function acctQuota(row) {
+    const q = row.quota;
+    if (q == null || q === "") return '<span style="color:var(--muted)">—</span>';
+    if (typeof q === "object") {
+      const pct = Math.max(0, Math.min(100, 100 - (q.pct || 0)));
+      const color = pct < 25 ? "var(--red,#e5484d)" : "var(--green,#46a758)";
+      return esc(q.text) +
+        '<div class="quota-bar"><i style="width:' + pct + "%;background:" + color + '"></i></div>';
+    }
+    if (q === 0 || q === "0") return '<span class="zero">0</span>';
+    return esc(typeof q === "number" ? q.toLocaleString("en-US") : q);
+  }
+
+  // 统一渲染：三个表格 + 汇总条 + 备注，全部走同一套列
+  function renderAcctTable(map, detail) {
+    const rows = (map.rows(detail) || []);
+    const toolbar = map.toolbar ? map.toolbar(detail) : "";
+    const sum = map.sum ? map.sum(detail) : "";
+    const note = map.note ? map.note(detail) : "";
+    if (!rows.length) {
+      return (toolbar || "") + (sum || "") +
+        '<div class="acct-empty">' + esc(map.empty || "暂无账号") + "</div>" + (note || "");
+    }
+    const body = rows.map((r) => {
+      // 分组头（Qoder 双区）：整行铺满，不带额度/状态列
+      if (r.group) {
+        return '<tr class="acct-group"><td colspan="3">' + esc(r.name || "") +
+          (r.count != null ? '<span class="grp-count">' + r.count + " 个账号</span>" : "") +
+          (r.note ? '<span class="grp-count">' + esc(r.note) + "</span>" : "") +
+          (r.badge ? '<span class="grp-badge">' + esc(r.badge) + "</span>" : "") +
+          "</td></tr>";
+      }
+      return "<tr>" +
+        '<td class="acct-name">' + esc(r.name || "—") +
+          (r.sub ? '<div class="acct-sub">' + esc(r.sub) + "</div>" : "") + "</td>" +
+        '<td class="num pts acct-quota">' + acctQuota(r) + "</td>" +
+        '<td class="acct-state">' + acctState(r) + "</td>" +
+      "</tr>";
+    }).join("");
+    return (toolbar || "") + (sum || "") + (note || "") +
+      '<table class="acct-table acct-unified"><thead><tr>' +
+        "<th>账号</th><th>额度 / 积分</th><th>状态</th>" +
+      "</tr></thead><tbody>" + body + "</tbody></table>";
+  }
+
+  function drawerBodyHtml(detail) {
+    if (!detail || detail.ok === false) {
+      const msg = detail && detail.message ? detail.message : "暂时拿不到账号信息";
+      return '<div class="acct-empty">' + esc(msg) + "</div>";
+    }
+    // 优先按 kind 找；找不到再按 family 找 —— 海外版（如 qoder_intl）可直接复用
+    // 国内版（qoder）的 mapper，不必再写一份。
+    // family → mapper 名：daily 型（WB/豆包）共用同一个 mapper。
+    const FAMILY_MAP = { autoclaw: "autoclaw", qoder: "qoder",
+                         workbuddy: "daily", doubao: "daily" };
+    const map = DRAWER_MAP[detail.kind]
+      || DRAWER_MAP[FAMILY_MAP[detail.family]]
+      || null;
+    if (!map) {
+      return '<div class="acct-empty">未知的账号类型：' + esc(String(detail.kind || detail.family)) + "</div>";
+    }
+    return renderAcctTable(map, detail);
+  }
+
+  // ---- 各家 mapper：只做字段规范化，不动呈现 ----
+  // 新增 agent 时照着加一条即可，表格/状态胶囊/汇总条自动复用。
+
+  // Qoder 单账号行：双区共用同一套状态判定
+  function qoderAcctRow(a) {
+    const pct = a.usage_pct != null ? a.usage_pct * 100 : null;
+    let state;
+    if (!a.enabled) state = { level: "warn", text: "已停用" };
+    else if (a.in_cooldown) state = { level: "warn", text: "冷却中" };
+    else if (a.last_error) state = { level: "warn", text: "异常" };
+    else if (a.can_checkin) state = { level: "ok", text: "可签到" };
+    else state = { level: "ok", text: "今日已签" };
+    const notes = [];
+    if (a.in_cooldown && a.cooldown_for) {
+      notes.push("冷却 " + Math.ceil(a.cooldown_for / 60) + " 分钟");
+    }
+    if (a.last_error) {
+      const err = String(a.last_error);
+      notes.push(err.length > 46 ? err.slice(0, 46) + "…" : err);
+    }
+    if (a.credits_expires_text) notes.push("套餐到期 " + a.credits_expires_text);
+    if (a.last_checkin) notes.push("签到 " + String(a.last_checkin).slice(0, 16));
+    const sub = [a.plan || "", a.domain || ""].filter(Boolean).join(" · ");
+    return {
+      name: a.name || "—",
+      sub,
+      quota: a.remain == null ? null : {
+        text: a.remain + " / " + (a.size == null ? "—" : a.size),
+        pct: pct,
+      },
+      state,
+      note: notes.join(" · "),
+    };
+  }
+
+  const DRAWER_MAP = {
+    // AutoClaw：points 是积分，expiring 是"三日内将过期的积分"→ 归入状态列
+    autoclaw: {
+      title: "AutoClaw 账号池",
+      empty: "账号池为空，先去 AutoClaw 暖号并导出。",
+      rows: (d) => (d.accounts || []).map((a) => {
+        const pts = typeof a.points === "number" ? a.points : null;
+        const exp = typeof a.expiring === "number" ? a.expiring : null;
+        // 状态列直接写明"三日内"窗口，与 relay 的选号口径一致
+        let state, note;
+        if (exp == null) {
+          state = { level: "unknown", text: "临期未知" };
+          note = "该号未采集到临期份额";
+        } else if (exp > 0) {
+          state = { level: "warn", text: "三日内有临期" };
+          note = exp.toLocaleString("en-US") + " 分即将过期，会被优先消耗";
+        } else {
+          state = { level: "ok", text: "三日内无临期" };
+        }
+        return {
+          name: a.name || a.uid,
+          sub: a.is_live ? "桌面登录中" : "",
+          quota: pts,
+          state, note,
+        };
+      }),
+      sum: (d) => {
+        const accts = d.accounts || [];
+        let totalPts = 0, hasPts = false, expN = 0, expSum = 0, unknown = 0;
+        accts.forEach((a) => {
+          if (typeof a.points === "number") { totalPts += a.points; hasPts = true; }
+          if (typeof a.expiring === "number") {
+            if (a.expiring > 0) { expN += 1; expSum += a.expiring; }
+          } else {
+            unknown += 1;
+          }
+        });
+        const expPart = expN > 0
+          ? "<span>临期 <b>" + expN + " 号 / " + expSum.toLocaleString("en-US") + " 分</b></span>"
+          : (unknown === accts.length
+              ? "<span>临期 <b>未采集</b></span>"
+              : "<span>临期 <b>无</b></span>");
+        return '<div class="acct-sum">' +
+          "<span>账号 <b>" + accts.length + "</b></span>" +
+          "<span>总积分 <b>" + (hasPts ? totalPts.toLocaleString("en-US") : "—") + "</b></span>" +
+          expPart +
+          "<span>快照 <b>" + esc(d.snapshot_at || "—") + "</b></span>" +
+          "</div>";
+      },
+      note: (d) => {
+        const parts = [];
+        // 用户要的标注：relay 会按临期优先自动换号
+        parts.push('<div class="acct-note acct-note-key">'
+          + "反代按「临期优先」自动切换账号：即将过期的积分权重最高，会先被烧掉，"
+          + "其次是余额高的号；单个号额度打空或限流时自动换下一个，无需手动干预。</div>");
+        if (d.snapshot_at) {
+          parts.push('<div class="acct-note">积分与临期均为 AutoClaw 导出时的快照，'
+            + "非实时余额；要看最新值请在 AutoClaw 里刷新后重新导出。</div>");
+        }
+        return parts.join("");
+      },
+    },
+
+    // Qoder：国内版 / 国际版分组；出口决定 8790 这一端口当前用哪一区的账号
+    qoder: {
+      title: "Qoder 账号池",
+      empty: "Qoder 账号池为空。点右上「导入本机登录态」，扫描本机 Qoder 国内版 / 国际版登录。",
+      toolbar: (d) => {
+        const realms = d.realms || [];
+        const current = d.current_realm || "cn";
+        const seg = (key, fallbackName) => {
+          const info = realms.find((r) => r.key === key)
+            || { key, name: fallbackName, count: 0, enabled: 0 };
+          const active = key === current;
+          return '<button class="seg' + (active ? " is-active" : "") +
+            '" data-act="qoder-realm" data-realm="' + esc(key) + '"' +
+            (active ? " disabled" : "") +
+            ' title="' + esc(active
+              ? "当前出口"
+              : "把 8790 出口切到" + info.name + "（" + (info.enabled || 0) + " 个可用账号）") +
+            '">' + esc(info.name) + "<b>" + (info.count || 0) + "</b></button>";
+        };
+        return '<div class="qoder-bar">' +
+          '<span class="bar-label">出口</span>' +
+          seg("cn", "国内版") + seg("intl", "国际版") +
+          '<span class="bar-hint">客户端统一走 8790，切出口 = 切这一区的账号</span>' +
+          '<button class="key key-quiet key-mini" data-act="qoder-scan">导入本机登录态</button>' +
+          "</div>";
+      },
+      rows: (d) => {
+        const accts = d.accounts || [];
+        if (!accts.length) return [];   // 交给 renderAcctTable 显示空态提示
+        const realms = d.realms || [];
+        const current = d.current_realm || "cn";
+        const out = [];
+        const pushGroup = (key, subset, name) => {
+          const numeric = subset.filter((a) => typeof a.remain === "number");
+          const remain = numeric.reduce((s, a) => s + a.remain, 0);
+          out.push({
+            group: true,
+            name: name,
+            count: subset.length,
+            note: numeric.length ? "剩余 " + remain.toLocaleString("en-US") : "",
+            badge: key === current ? "当前出口" : "",
+          });
+          subset.forEach((a) => out.push(qoderAcctRow(a)));
+        };
+        ["cn", "intl"].forEach((key) => {
+          const info = realms.find((r) => r.key === key);
+          const subset = accts.filter((a) => (a.realm || "cn") === key);
+          pushGroup(key, subset, info ? info.name : (key === "intl" ? "国际版" : "国内版"));
+        });
+        // 千问办公不属于 Qoder 双区，若池里有则单独列出（不可用出口切换）
+        const extra = accts.filter((a) => !["cn", "intl"].includes(a.realm || "cn"));
+        if (extra.length) pushGroup("qworkcn", extra, "千问办公", "非双区");
+        return out;
+      },
+      sum: (d) => {
+        const accts = d.accounts || [];
+        const enabled = accts.filter((a) => a.enabled).length;
+        const canCheckin = accts.filter((a) => a.can_checkin).length;
+        const numeric = accts.filter((a) => typeof a.remain === "number");
+        const remain = numeric.reduce((s, a) => s + a.remain, 0);
+        return '<div class="acct-sum">' +
+          "<span>账号 <b>" + accts.length + "</b></span>" +
+          "<span>可用 <b>" + enabled + "</b></span>" +
+          "<span>剩余积分 <b>" + (numeric.length ? remain.toLocaleString("en-US") : "—") + "</b></span>" +
+          "<span>待签到 <b>" + canCheckin + "</b></span>" +
+          "<span>出口 <b>" + esc(d.current_realm_name || "—") + "</b></span>" +
+          "</div>";
+      },
+      note: () => '<div class="acct-note acct-note-key">' +
+        "国内版（qoder.com.cn）与国际版（qoder.com）的账号各用各的登录域，分开管理；" +
+        "「出口」决定 8790 这一个端口当前使用哪一区的账号，客户端配置不用改。" +
+        "切换出口前，目标区至少要有一个可用账号。</div>",
+    },
+
+    // daily（WorkBuddy / 豆包）：签到摘要，映射成单行"账号"视图
+    daily: {
+      title: "每日签到",
+      empty: "暂无签到摘要。",
+      rows: (d) => {
+        const s = d.summary || {};
+        const statusMap = {
+          no_activity: ["未活跃", "unknown"], already: ["今日已签", "ok"],
+          pending: ["可签到", "ok"], checked_in: ["已签到", "ok"],
+          error: ["异常", "warn"],
+          // 豆包后端给的是英文枚举
+          active: ["可签到", "ok"], inactive: ["未活跃", "unknown"],
+          finished: ["已结束", "unknown"], expired: ["已过期", "warn"],
+        };
+        const hit = statusMap[s.status];
+        const [txt, lvl] = hit || [s.status ? "状态未知" : "未知", "unknown"];
+        const credits = s.total_credits != null ? s.total_credits : s.credit;
+        // daily 类型后端不带 label，用 key 映射网关名
+        const NAME = { wb: "WorkBuddy", doubao: "DoubaoWork" };
+        const sub = s.streak_days != null
+          ? "连续 " + s.streak_days + " 天" + (s.today_checked_in ? " · 今日已签" : "")
+          : (s.today_checked_in ? "今日已签" : "");
+        const main = {
+          name: NAME[d.key] || d.key || "今日",
+          sub,
+          quota: credits == null ? null : credits,
+          state: { level: lvl, text: txt },
+          note: s.message || (s.end_time ? "到期 " + s.end_time : ""),
+        };
+
+        // 豆包有两个账号：面板固定只用「豆包工作」反代，
+        // 「普通豆包」是手机端在用的，面板**只读展示、不绑定、不切换**，
+        // 避免代理请求污染用户在手机上聊的对话。
+        const ai = d.accounts_info;
+        if (d.key === "doubao" && ai && ai.gateway && ai.checkin) {
+          const ageTxt = (info) => {
+            const m = info.age_min;
+            if (m == null) return "";
+            return m < 120 ? Math.round(m) + " 分钟前" : (m < 2880
+              ? (m / 60).toFixed(1) + " 小时前" : (m / 1440).toFixed(1) + " 天前");
+          };
+          const g = ai.gateway || {};
+          const c = ai.checkin || {};
+          const stale = g.age_min != null && g.age_min > 4320;   // >3 天
+          return [
+            {
+              name: "豆包工作（面板反代）",
+              sub: g.exists ? "cookie " + (ageTxt(g) || "未知") : "cookie 缺失",
+              quota: null,
+              state: !g.exists
+                ? { level: "warn", text: "未就绪" }
+                : (stale ? { level: "warn", text: "cookie 陈旧" }
+                         : { level: "ok", text: "使用中" }),
+              note: "账号指纹 " + (g.fp || "?"),
+            },
+            {
+              name: "普通豆包（手机端）",
+              sub: (c.exists ? "cookie " + (ageTxt(c) || "未知") : "cookie 缺失")
+                + (sub ? " · " + sub : ""),
+              quota: main.quota,
+              state: { level: lvl, text: txt },
+              note: main.note,
+            },
+          ];
+        }
+        return [main];
+      },
+      sum: (d) => {
+        const s = d.summary || {};
+        const parts = ["<span>今日积分 <b>" +
+          (s.today_credit == null ? "—" : s.today_credit) + "</b></span>"];
+        if (s.total_credits != null || s.credit != null) {
+          parts.push("<span>总积分 <b>" +
+            (s.total_credits != null ? s.total_credits : s.credit) + "</b></span>");
+        }
+        return '<div class="acct-sum">' + parts.join("") + "</div>";
+      },
+      // 明确边界：面板不碰普通豆包账号
+      note: (d) => {
+        const ai = d.accounts_info;
+        if (d.key !== "doubao" || !ai) return "";
+        if (ai.same_account === false) {
+          return '<div class="acct-note acct-note-key">面板固定使用「豆包工作」账号做反代，'
+            + "不会绑定或切换到「普通豆包」——那是手机端在用的账号，"
+            + "代理请求不会写进你的手机对话。</div>";
+        }
+        return '<div class="acct-note acct-note-key">面板使用「豆包工作」账号做反代。</div>';
+      },
+    },
+  };
+
+  async function loadDetail(key, useCache) {
+    const drawer = document.querySelector('.drawer[data-drawer="' + cssEscape(key) + '"]');
+    if (!drawer) return;
+    if (useCache && window.__detailCache[key]) {
+      drawer.querySelector(".drawer-body").innerHTML = window.__detailCache[key];
+      return;
+    }
+    drawer.querySelector(".drawer-body").innerHTML = "加载中…";
+    try {
+      const detail = await api("gateway_detail", key);
+      const html = drawerBodyHtml(detail);
+      window.__detailCache[key] = html;
+      drawer.querySelector(".drawer-body").innerHTML = html;
+    } catch (err) {
+      const html = '<div class="acct-empty">加载失败：' + esc(err && err.message ? err.message : err) + "</div>";
+      window.__detailCache[key] = html;
+      drawer.querySelector(".drawer-body").innerHTML = html;
+    }
+  }
+
+  function cssEscape(value) {
+    return String(value).replace(/["\\]/g, "\\$&");
+  }
+
+  // Qoder「导入本机登录态」：先只读扫描，勾选后再让后端按 pick_key 导入
+  async function openQoderScan() {
+    let data;
+    try {
+      data = await api("qoder_scan_desktop");
+    } catch (e) {
+      toast("扫描失败：" + e, "warn");
+      return;
+    }
+    if (!data || !data.ok) {
+      toast((data && data.message) || "扫描失败", "warn");
+      return;
+    }
+    const cands = data.candidates || [];
+    const old = document.getElementById("qoderScanMask");
+    if (old) old.remove();
+
+    const KIND = { app: "桌面 App", cli: "CLI" };
+    let body = "";
+    ["cn", "intl"].forEach((key) => {
+      const subset = cands.filter((c) => c.realm === key);
+      if (!subset.length) return;
+      body += '<div class="qgroup-label">' + esc(subset[0].realm_name || key) + "</div>";
+      subset.forEach((c) => {
+        const usable = c.valid && c.readable;
+        const tags = [];
+        if (c.in_pool) tags.push("已在池 · 重新导入会刷新凭证");
+        if (!usable) tags.push(c.error ? "不可用：" + c.error : "不可用");
+        body += '<label class="qcand' + (usable ? "" : " is-bad") + '">' +
+          '<input type="checkbox" data-pick="' + esc(c.pick_key) + '"' +
+            (usable && !c.in_pool ? " checked" : "") + (usable ? "" : " disabled") + ">" +
+          '<span class="q-main"><span class="q-name">' +
+            esc(c.nickname || c.uid || "未命名") +
+            (tags.length ? '<span class="q-tag">' + esc(tags.join(" · ")) + "</span>" : "") +
+          '</span><span class="q-meta">' + esc(KIND[c.kind] || c.kind || "文件") +
+            (c.file ? " · " + esc(c.file) : "") +
+            (c.expires_text ? " · 凭证到期 " + esc(c.expires_text) : "") +
+          "</span></span></label>";
+      });
+    });
+    if (!body) {
+      body = '<div class="acct-empty">没有扫描到 Qoder 国内版 / 国际版登录态。'
+        + "先在对应客户端登录一次，再点「导入本机登录态」。</div>";
+    }
+
+    const mask = document.createElement("div");
+    mask.className = "qmodal-mask";
+    mask.id = "qoderScanMask";
+    mask.innerHTML = '<div class="qmodal" role="dialog" aria-modal="true" aria-label="导入本机登录态">' +
+      '<div class="qmodal-head"><h3>导入本机登录态</h3>' +
+        '<span class="q-sub">扫描到 ' + cands.length + " 个 · 当前出口 " +
+          esc(data.current_realm_name || "—") + "</span></div>" +
+      '<div class="qmodal-body">' + body + "</div>" +
+      '<div class="qmodal-foot">' +
+        '<button class="key key-quiet key-mini" data-q="cancel">取消</button>' +
+        '<button class="key key-checkin" data-q="import">导入选中</button>' +
+      "</div></div>";
+    document.body.appendChild(mask);
+
+    const closeMask = () => {
+      document.removeEventListener("keydown", onKey);
+      mask.remove();
+    };
+    const onKey = (ev) => { if (ev.key === "Escape") closeMask(); };
+    document.addEventListener("keydown", onKey);
+
+    mask.addEventListener("click", async (ev) => {
+      if (ev.target === mask) { closeMask(); return; }
+      if (ev.target.closest('[data-q="cancel"]')) { closeMask(); return; }
+      const impBtn = ev.target.closest('[data-q="import"]');
+      if (!impBtn || impBtn.disabled) return;
+      const keys = Array.from(mask.querySelectorAll("input[data-pick]:checked"))
+        .map((x) => x.dataset.pick);
+      if (!keys.length) { toast("先勾选要导入的登录态", "warn"); return; }
+      impBtn.disabled = true;
+      try {
+        const r = await api("qoder_import_desktop", keys);
+        toast((r && r.message) || (r && r.ok ? "导入完成" : "导入失败"),
+              r && r.ok ? "ok" : "warn");
+        if (r && r.ok) {
+          closeMask();
+          window.__detailCache["qoder"] = null;
+          if (window.__expanded.has("qoder")) await loadDetail("qoder");
+        }
+      } catch (e) {
+        toast("导入失败：" + e, "warn");
+      } finally {
+        if (impBtn.isConnected) impBtn.disabled = false;
+      }
+    });
+  }
+
+  $("#cards").addEventListener("click", async (event) => {
+    const btn = event.target.closest("button[data-act]");
+    if (!btn || btn.disabled) return;
+    const name = btn.dataset.act;
+    if (name === "remove-ext") {
+      const key = btn.dataset.key;
+      if (!confirm("从面板移除这个外部网关？\n（只删面板里的条目，不影响网关进程本身）")) return;
+      btn.disabled = true;
+      try {
+        const r = await api("remove_custom_gateway", key);
+        toast(r && r.ok ? "已移除" : ((r && r.message) || "移除失败"), r && r.ok ? "ok" : "warn");
+      } catch (e) {
+        toast("移除失败：" + e, "warn");
+      }
+      return;
+    }
+    if (name === "toggle") {
+      btn.disabled = true;
+      await act("toggle", [btn.dataset.key]);
+    } else if (name === "dashboard") {
+      await act("open_dashboard", [btn.dataset.key]);
+    } else if (name === "copy") {
+      await copyText(btn.dataset.text || "");
+    } else if (name === "detail") {
+      const key = btn.dataset.key;
+      const card = btn.closest(".channel");
+      if (!card) return;
+      if (window.__expanded.has(key)) {
+        window.__expanded.delete(key);
+        card.classList.remove("expanded");
+      } else {
+        window.__expanded.add(key);
+        card.classList.add("expanded");
+        await loadDetail(key);
+      }
+    } else if (name === "checkin") {
+      const key = btn.dataset.key;
+      btn.disabled = true;
+      const res = await act("checkin", [key], "已开始签到");
+      // 动作可能在两次轮询之间就结束，DOM 不会重建；这里显式恢复按钮，
+      // 否则签到键会一直灰着（Qoder 尤其快）。
+      if (btn.isConnected) btn.disabled = false;
+      if (res && res.ok) {
+        if (window.__expanded.has(key)) await loadDetail(key);
+      }
+    } else if (name === "qoder-scan") {
+      btn.disabled = true;
+      try {
+        await openQoderScan();
+      } finally {
+        if (btn.isConnected) btn.disabled = false;
+      }
+    } else if (name === "qoder-realm") {
+      const realm = btn.dataset.realm;
+      btn.disabled = true;
+      try {
+        const r = await api("qoder_set_realm", realm);
+        toast((r && r.message) || (r && r.ok ? "出口已切换" : "切换失败"),
+              r && r.ok ? "ok" : "warn");
+        if (r && r.ok) {
+          window.__detailCache["qoder"] = null;
+          if (window.__expanded.has("qoder")) await loadDetail("qoder");
+        }
+      } catch (e) {
+        toast("切换出口失败：" + e, "warn");
+      } finally {
+        if (btn.isConnected) btn.disabled = false;
+      }
+    }
+  });
+
+  $("#appButtons").addEventListener("click", async (event) => {
+    const addBtn = event.target.closest("button[data-act='add-client']");
+    if (addBtn) {
+      if (addBtn.disabled) return;
+      addBtn.disabled = true;
+      try { await act("client_add"); }
+      finally { if (addBtn.isConnected) addBtn.disabled = false; }
+      return;
+    }
+    const openBtn = event.target.closest("button[data-act='open-app']");
+    if (openBtn) {
+      if (openBtn.disabled) return;
+      await act("open_app", [openBtn.dataset.key]);
+      return;
+    }
+    const removeBtn = event.target.closest("button[data-act='remove-client']");
+    if (removeBtn) {
+      if (removeBtn.disabled) return;
+      if (!confirm("从面板移除这个客户端？\n不会删除程序文件。")) return;
+      await act("client_remove", [removeBtn.dataset.key]);
+      return;
+    }
+    const closeBtn = event.target.closest("button[data-act='close-app']");
+    if (!closeBtn || closeBtn.disabled) return;
+    await act("close_app", [closeBtn.dataset.key]);
+  });
+
+  // 今日消耗：板块级折叠（行内明细常显，不再逐行折叠）
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+    toast("已复制 " + text, "ok");
+  }
+
+  $("#refreshBtn").addEventListener("click", async () => {
+    $("#updated").textContent = "刷新中…";
+    await poll();
+  });
+
+  $("#onboardBtn").addEventListener("click", openOnboard);
+  $("#startAll").addEventListener("click", () => act("start_all"));
+  $("#stopAll").addEventListener("click", () => {
+    if (window.confirm("停止全部网关？正在使用中的客户端会断开。")) act("stop_all");
+  });
+  $("#checkinAll").addEventListener("click", () => act("checkin_all", [], "已开始签到全部（WB / 豆包 / AutoClaw）"));
+
+  // ---- 外部网关接入表单 ----
+  function initExtForm() {
+    const toggle = document.getElementById("extToggle");
+    const form = document.getElementById("extForm");
+    const cancel = document.getElementById("extCancel");
+    if (!toggle || !form) return;
+    toggle.addEventListener("click", () => {
+      const show = form.style.display === "none";
+      form.style.display = show ? "flex" : "none";
+      if (show) document.getElementById("extName").focus();
+    });
+    cancel.addEventListener("click", () => { form.style.display = "none"; });
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const name = document.getElementById("extName").value.trim();
+      const port = document.getElementById("extPort").value.trim();
+      const token = document.getElementById("extToken").value.trim();
+      const proto = document.getElementById("extProto").value;
+      if (!port) { toast("请填端口", "warn"); return; }
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      try {
+        const r = await api("add_custom_gateway", name, port, token, proto);
+        if (r && r.ok) {
+          toast("已接入 " + (name || ("端口 " + port)), "ok");
+          form.reset();
+          form.style.display = "none";
+        } else {
+          toast((r && r.message) || "接入失败", "warn");
+        }
+      } catch (e) {
+        toast("接入失败：" + e, "warn");
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  async function start() {
+    if (started) return;
+    started = true;
+    // 先拉规格表再渲染：卡片/消耗/签到/抽屉都依赖能力位
+    try {
+      const sp = await api("gw_specs");
+      if (sp && sp.ok) loadSpecs(sp.specs);
+    } catch (e) { /* 规格拉不到就回退到默认能力集，界面仍可用 */ }
+    initUsageSection();
+    initHubSection();
+    initEnvSection();
+    initSetupSection();
+    initBootSection();
+    initCheckinSection();
+    initExtForm();
+    poll();
+    setInterval(poll, 2500);
+    refreshUsage();
+    setInterval(refreshUsage, 30000);
+    refreshEnv(false);
+    refreshSetup();
+    refreshStartup(false);
+    refreshCheckinSchedule();
+  }
+
+  window.addEventListener("pywebviewready", start);
+
+  if (demo) {
+    start();
+  } else {
+    setTimeout(() => {
+      if (!started && window.pywebview) start();
+    }, 1200);
+  }
+
+  const DEMO_GW_NAMES = { auto: "AutoClaw relay", wb: "WorkBuddy proxy", qoder: "Qoder proxy", doubao: "DoubaoWork relay" };
+  const DEMO_GW_ORDER = ["auto", "wb", "qoder", "doubao"];
+  const DEMO_CLIENT_GWS = {
+    dsh: ["auto", "wb", "qoder"],
+    zcode: ["auto", "wb", "qoder", "doubao"],
+    claude: ["auto"],
+    codex: ["auto"],
+  };
+
+  function demoOnboardPlanData() {
+    const applied = !!demoOnboardApplied.dsh;
+    const gw = (key) => {
+      const p = demoProviders.find((x) => x.key === key) || {};
+      return { key: key, name: p.name || key, port: p.port || null,
+               running: !!p.running, note: p.note || "", optional: key === "doubao" };
+    };
+    return {
+      ok: true, checked_at: Date.now() / 1000,
+      clients: [
+        { key: "dsh", label: "DSH",
+          path: "C:\\Users\\<user>\\AppData\\Roaming\\dsh-desktop\\harness\\profiles\\web\\cordis.patch.yml",
+          exists: true, state: applied ? "ok" : "warn",
+          detail: applied ? "3 个本地 provider 已就绪" : "缺少 qoder provider（可自动补）",
+          action: "apply", write: true,
+          note: "写入 provider 与超时；改完要完全退出 DSH 再启动才生效",
+          gateways: ["auto", "wb", "qoder"],
+          gateway_names: ["AutoClaw relay", "WorkBuddy proxy", "Qoder proxy"],
+          selected: !applied },
+        { key: "zcode", label: "ZCode", path: "C:\\Users\\<user>\\.zcode\\v2\\provider_config.json",
+          exists: true, state: "ok", detail: "4/4 个本地 provider 已就绪", action: "apply", write: true,
+          note: "注册四个本地 provider；写前自动备份",
+          gateways: ["auto", "wb", "qoder", "doubao"],
+          gateway_names: ["AutoClaw relay", "WorkBuddy proxy", "Qoder proxy", "DoubaoWork relay"],
+          selected: false },
+        { key: "claude", label: "Claude Code", path: "C:\\Users\\<user>\\.claude\\settings.json",
+          exists: true, state: "warn", detail: "当前直连 api.deepseek.com（未经过本机网关）",
+          action: "snippet", write: false, note: "只给可复制片段，不自动改 settings.json",
+          gateways: ["auto"], gateway_names: ["AutoClaw relay"], selected: false },
+        { key: "codex", label: "Codex", path: "C:\\Users\\<user>\\.codex\\config.toml",
+          exists: true, state: "warn", detail: "未配置 base_url", action: "snippet", write: false,
+          note: "只给可复制片段，不自动改 config.toml",
+          gateways: ["auto"], gateway_names: ["AutoClaw relay"], selected: false },
+      ],
+      gateways: DEMO_GW_ORDER.map(gw),
+      tokens: [
+        { env: "AUTOCLAW_LOCAL_KEY", gateway: "auto", name: "AutoClaw relay", value: "autoclaw-local", set: true },
+        { env: "WB_LOCAL_KEY", gateway: "wb", name: "WorkBuddy proxy", value: "workbuddy-local", set: true },
+        { env: "QODER_LOCAL_KEY", gateway: "qoder", name: "Qoder proxy", value: "qoder-local", set: true },
+        { env: "DOUBAO_LOCAL_KEY", gateway: "doubao", name: "DoubaoWork relay", value: "doubao-local-key", set: false },
+      ],
+      issues: [],
+      blocked: false,
+      env_summary: { ok: 26, warn: 3, fail: 0, total: 29 },
+      qoder_accounts: 2,
+      need: applied ? 2 : 3,
+    };
+  }
+
+  function demoOnboardNewJob(keys) {
+    const needed = [];
+    keys.forEach((k) => {
+      (DEMO_CLIENT_GWS[k] || []).forEach((g) => {
+        if (needed.indexOf(g) < 0) needed.push(g);
+      });
+    });
+    const ordered = DEMO_GW_ORDER.filter((g) => needed.indexOf(g) >= 0);
+    const steps = [
+      { key: "env", label: "占位 token", state: "pending",
+        items: [{ key: "tokens", label: "占位 token 环境变量", state: "pending", message: "" }] },
+      { key: "gateways", label: "启动网关", state: "pending",
+        items: ordered.map((g) => ({ key: g, label: DEMO_GW_NAMES[g], state: "pending", message: "" })) },
+      { key: "configs", label: "写入配置", state: "pending",
+        items: keys.map((k) => ({ key: k, label: OB_CLIENT_LABEL[k], state: "pending", message: "" })) },
+      { key: "verify", label: "验证接入", state: "pending",
+        items: ordered.map((g) => ({ key: "gw:" + g, label: "网关 " + DEMO_GW_NAMES[g], state: "pending", message: "" }))
+          .concat(keys.map((k) => ({ key: k, label: OB_CLIENT_LABEL[k], state: "pending", message: "" }))) },
+    ];
+    const queue = [
+      ["env", "tokens", "running", "检查占位 token…"],
+      ["env", "tokens", "ok", "已补齐 1 个"],
+    ];
+    ordered.forEach((g) => {
+      queue.push(["gateways", g, "running", "启动中…"]);
+      queue.push(["gateways", g, "ok", "已启动"]);
+    });
+    keys.forEach((k) => {
+      queue.push(["configs", k, "running", "写入中…"]);
+      if (k === "claude" || k === "codex") queue.push(["configs", k, "warn", "只提供片段，需手动合并"]);
+      else queue.push(["configs", k, "ok", "已写入（已备份）"]);
+    });
+    ordered.forEach((g) => queue.push(["verify", "gw:" + g, "ok", "在线"]));
+    keys.forEach((k) => {
+      if (k === "claude" || k === "codex") queue.push(["verify", k, "warn", "片段已生成；粘贴后再看环境自检"]);
+      else queue.push(["verify", k, "ok", "本地 provider 已就绪"]);
+    });
+    return {
+      id: (demoOnboardJob ? demoOnboardJob.id : 0) + 1,
+      running: true, done: false, ok: false,
+      clients: keys, steps: steps, result: null, message: "正在接入…",
+      started: Date.now() / 1000, elapsed: 0, updated: Date.now() / 1000,
+      _queue: queue, _needed: ordered,
+    };
+  }
+
+  function demoOnboardAdvance() {
+    const job = demoOnboardJob;
+    if (!job || !job.running) return;
+    for (let n = 0; n < 3 && job._queue.length; n += 1) {
+      const evt = job._queue.shift();
+      const step = job.steps.find((s) => s.key === evt[0]);
+      const item = step && step.items.find((i) => i.key === evt[1]);
+      if (!item) continue;
+      item.state = evt[2];
+      item.message = evt[3] || "";
+      const states = step.items.map((i) => i.state);
+      if (states.indexOf("running") >= 0) step.state = "running";
+      else if (states.indexOf("fail") >= 0) step.state = "fail";
+      else if (states.indexOf("warn") >= 0) step.state = "warn";
+      else if (states.every((s) => s === "ok" || s === "skip")) step.state = "ok";
+      else step.state = "pending";
+    }
+    job.updated = Date.now() / 1000;
+    if (!job._queue.length) demoOnboardFinish(job);
+  }
+
+  function demoOnboardFinish(job) {
+    job.running = false;
+    job.done = true;
+    job.elapsed = Math.round((Date.now() / 1000 - job.started) * 10) / 10;
+    job._needed.forEach((g) => {
+      const p = demoProviders.find((x) => x.key === g);
+      if (p) {
+        p.running = true;
+        p.pid = p.pid || Math.floor(10000 + Math.random() * 80000);
+        p.latency_ms = p.latency_ms || Math.floor(3 + Math.random() * 15);
+        p.note = "健康检查通过";
+      }
+    });
+    job.clients.forEach((k) => {
+      if (k === "dsh" || k === "zcode") demoOnboardApplied[k] = true;
+    });
+    const manual = job.clients.filter((k) => k === "claude" || k === "codex");
+    const snippets = {};
+    manual.forEach((k) => {
+      snippets[k] = k === "claude"
+        ? '{\n  "env": {\n    "ANTHROPIC_BASE_URL": "http://127.0.0.1:18766",\n    "ANTHROPIC_AUTH_TOKEN": "autoclaw-local"\n  }\n}'
+        : 'model_provider = "autoclaw"\nmodel = "GLM-5.3"\n\n[model_providers.autoclaw]\nname = "AutoClaw"\nbase_url = "http://127.0.0.1:18766/v1"\nenv_key = "AUTOCLAW_LOCAL_KEY"\nwire_api = "responses"';
+    });
+    const plan = demoOnboardPlanData();
+    job.result = {
+      ok: true, clients: job.clients, needed_gateways: job._needed,
+      env: plan.tokens.filter((t) => job._needed.indexOf(t.gateway) >= 0)
+        .map((t) => ({ env: t.env, gateway: t.gateway, name: t.name,
+                       action: t.set ? "exists" : "set", message: "" })),
+      gateways: job._needed.map((g) => {
+        const p = demoProviders.find((x) => x.key === g) || {};
+        return { key: g, name: DEMO_GW_NAMES[g], port: p.port, ok: true,
+                 optional: g === "doubao", note: "健康检查通过" };
+      }),
+      configs: job.clients.map((k) => {
+        const manualRow = k === "claude" || k === "codex";
+        return { key: k, label: OB_CLIENT_LABEL[k], ok: true, manual: manualRow,
+                 message: manualRow ? "只提供片段，需手动合并" : "配置已是最新（演示）",
+                 backup: manualRow ? "" : (k === "dsh"
+                   ? "cordis.patch.yml.bak-ai-proxy-20261029-120000"
+                   : "provider_config.json.bak-ai-proxy-20261029-120000"),
+                 changes: [] };
+      }),
+      snippets: snippets,
+      verify: {
+        env_summary: { ok: 26, warn: 3, fail: 0, total: 29 },
+        configs: plan.clients.map((c) => ({
+          key: c.key, label: c.label,
+          state: (c.key === "dsh" && !demoOnboardApplied.dsh) ? "warn" : (c.write ? "ok" : "warn"),
+          detail: c.key === "dsh" && demoOnboardApplied.dsh ? "已接入本机网关" : c.detail,
+        })),
+        qoder_accounts: 2,
+      },
+      message: manual.length
+        ? "自动接入已完成；" + manual.map((k) => OB_CLIENT_LABEL[k]).join(" / ") +
+          " 的片段需要手动合并"
+        : "接入完成",
+    };
+    job.ok = true;
+    job.message = job.result.message;
+    demoLogs.push({
+      id: demoId++,
+      t: new Date().toLocaleTimeString("zh-CN", { hour12: false }),
+      text: "一键接入完成（演示）",
+      level: "ok",
+    });
+  }
+
+  async function demoApi(name, args) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    if (name === "startup_status") {
+      return {
+        ok: true,
+        startup: {
+          ok: true, supported: true, enabled: demoAutostart, matches: demoAutostart,
+          approved: demoAutostart ? true : null, value: "AIProxyHubPanel",
+          command: '"<python>\\pythonw.exe" "<repo>\\gateway_ui.py"',
+          stored: demoAutostart ? '"<python>\\pythonw.exe" "<repo>\\gateway_ui.py"' : "",
+          message: demoAutostart ? "已开启" : "未开启",
+        },
+        ports: [
+          { key: "auto", name: "AutoClaw relay", port: 18766, pid: 44644, proc: "node.exe", state: "gateway", text: "本网关", note: "" },
+          { key: "wb", name: "WorkBuddy proxy", port: 8787, pid: 75104, proc: "node.exe", state: "gateway", text: "本网关", note: "" },
+          { key: "qoder", name: "Qoder proxy", port: 8790, pid: null, proc: "", state: "free", text: "空闲", note: "" },
+          { key: "doubao", name: "DoubaoWork relay", port: 18770, pid: 99001, proc: "python.exe", state: "other", text: "被其他进程占用", note: "" },
+        ],
+      };
+    }
+    if (name === "startup_set") {
+      demoAutostart = !!args[0];
+      return {
+        ok: true,
+        message: demoAutostart
+          ? "已开启开机自启（登录后只打开面板，不自动启动网关）"
+          : "已关闭开机自启",
+      };
+    }
+    if (name === "checkin_schedule_status") {
+      const on = demoCheckin.exists;
+      return {
+        ok: true, supported: true, exists: on, task: "AI每日签到",
+        state: on ? (demoCheckin.disabled ? "Disabled" : "Ready") : "",
+        time: demoCheckin.time,
+        last_run: on ? "2026-10-29 09:00" : "",
+        last_result: on ? 0 : null,
+        last_result_text: on ? "成功" : "尚未运行",
+        next_run: on ? ("2026-10-30 " + demoCheckin.time) : "",
+        action: "pythonw.exe",
+        arguments: '"<repo>\\daily_checkin.py" --scheduled',
+        script: "<repo>\\install_checkin_task.ps1",
+        message: on ? ("每天 " + demoCheckin.time + " 自动签到") : "未安装定时签到",
+      };
+    }
+    if (name === "checkin_schedule_set") {
+      demoCheckin.exists = true;
+      demoCheckin.disabled = false;
+      demoCheckin.time = (args && args[0]) || "09:00";
+      const st = await demoApi("checkin_schedule_status", []);
+      st.message = "已设为每天 " + demoCheckin.time + " 自动签到（错过开机后补跑）";
+      return { ok: true, message: st.message, schedule: st };
+    }
+    if (name === "checkin_schedule_remove") {
+      demoCheckin.exists = false;
+      const st = await demoApi("checkin_schedule_status", []);
+      st.message = "已移除定时签到（演示）";
+      return { ok: true, message: st.message, schedule: st };
+    }
+    if (name === "gw_specs") {
+      const CAPS = {
+        auto: ["start_stop", "checkin", "usage", "drawer", "client", "pool"],
+        wb: ["start_stop", "checkin", "usage", "drawer", "client"],
+        qoder: ["start_stop", "checkin", "usage", "drawer", "dashboard", "client"],
+        doubao: ["start_stop", "checkin", "usage", "drawer", "client"],
+      };
+      const COLOR = { auto: "#46a758", wb: "#3b82f6", qoder: "#a855f7", doubao: "#f59e0b" };
+      const NAME = { auto: "AutoClaw", wb: "WorkBuddy", qoder: "Qoder", doubao: "DoubaoWork" };
+      const PORT = { auto: 18766, wb: 8787, qoder: 8790, doubao: 18770 };
+      const TOK = { auto: "autoclaw-local", wb: "workbuddy-local", qoder: "qoder-local", doubao: "doubao-local-key" };
+      return {
+        ok: true, panel_order: ["auto", "wb", "qoder", "doubao"],
+        specs: ["auto", "wb", "qoder", "doubao"].map((k) => ({
+          key: k, family: k, region: "cn", name: NAME[k], full_name: NAME[k],
+          badge: k[0].toUpperCase(), color: COLOR[k], proto: "OpenAI",
+          port: PORT[k], token: TOK[k], caps: CAPS[k],
+          checkin_reset: { text: "每日 0:00 (本地) 刷新", tip: "演示" },
+          multi_account: k === "doubao",
+        })),
+      };
+    }
+    if (name === "agenthub_status") {
+      return {
+        ok: true, available: true, hub: "<AgentHub>", script_found: true,
+        broken: 0, message: "五个技能来源均已统一到 store",
+        store: { path: "<AgentHub>\\skills", entries: 94, files: 4209, mb: 1481.8 },
+        sources: ["claude", "codex", "qoder", "zcode", "workbuddy"].map((k) => ({
+          key: k, label: k, state: "ok", unified: true,
+          target: "<AgentHub>\\skills", exists: true,
+          path: "C:\\Users\\<user>\\." + k + "\\skills",
+        })),
+        memory: [
+          { key: "qoder", label: "Qoder", state: "plain", exists: true, hooked: false,
+            path: "C:\\Users\\<user>\\.qoder-cn\\memory\\MEMORY.md" },
+          { key: "claude", label: "Claude Code", state: "missing", exists: false, hooked: false,
+            path: "C:\\Users\\<user>\\.claude\\CLAUDE.md" },
+          { key: "codex", label: "Codex", state: "missing", exists: false, hooked: false,
+            path: "C:\\Users\\<user>\\.codex\\AGENTS.md" },
+        ],
+      };
+    }
+    if (name === "env_check") {
+      return {
+        ok: true, elapsed_ms: 12,
+        summary: { ok: 19, warn: 3, fail: 0, total: 22 },
+        groups: [
+          { key: "runtime", label: "运行环境", note: "面板和网关进程的基础", state: "ok", items: [
+            { key: "python", label: "Python", state: "ok", detail: "3.13.14 · <python>\\python.exe", impact: "" },
+            { key: "pywebview", label: "pywebview", state: "ok", detail: "已安装", impact: "" },
+            { key: "node", label: "Node.js", state: "ok", detail: "v24.18.0 · <node>", impact: "" },
+            { key: "powershell", label: "PowerShell", state: "ok", detail: "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE", impact: "" }
+          ] },
+          { key: "deps", label: "网关依赖", note: "四个网关的源码与辅助脚本", state: "ok", items: [
+            { key: "repo", label: "反代仓库", state: "ok", detail: "<engine>（默认路径）", impact: "" },
+            { key: "a_switch", label: "a_switch.py", state: "ok", detail: "<engine>\\a_switch.py", impact: "" },
+            { key: "importer", label: "凭证导入脚本", state: "ok", detail: "<engine>\\tools\\import_v2_account.py", impact: "" },
+            { key: "qoder_src", label: "Qoder 网关源码", state: "ok", detail: "<engine>\\qoder", impact: "" },
+            { key: "doubao_relay", label: "豆包 relay", state: "ok", detail: "<engine>\\doubao\\relay.mjs", impact: "" },
+            { key: "wb_proxy", label: "WorkBuddy 代理", state: "ok", detail: "<repo>\\workbuddy-proxy.js", impact: "" }
+          ] },
+          { key: "apps", label: "本机客户端", note: "只影响面板一键打开，不影响反代", state: "ok", items: [
+            { key: "app:wb", label: "WorkBuddy", state: "ok", detail: "C:\\Program Files\\WorkBuddy\\WorkBuddy.exe", impact: "" },
+            { key: "app:qoder", label: "Qoder CN", state: "ok", detail: "C:\\Program Files\\Qoder CN\\Qoder CN.exe", impact: "" },
+            { key: "app:dsh", label: "DSH", state: "ok", detail: "C:\\Program Files\\DSH Desktop\\DSH Desktop.exe", impact: "" },
+            { key: "app:zcode", label: "ZCode", state: "ok", detail: "C:\\Program Files\\ZCode\\ZCode.exe", impact: "" }
+          ] },
+          { key: "configs", label: "客户端接入", note: "各 agent 是否已经接到本机网关", state: "warn", items: [
+            { key: "dsh", label: "DSH", state: "ok", detail: "3 个 provider 接入本机（8787 / 8790 / 18766）", impact: "" },
+            { key: "zcode", label: "ZCode", state: "ok", detail: "4 个 provider 接入本机（8787 / 8790 / 18766 / 18770）", impact: "" },
+            { key: "claude", label: "Claude Code", state: "warn", detail: "当前直连 api.deepseek.com（未经过本机网关）", impact: "直连消耗不走账号池；需要时把 ANTHROPIC_BASE_URL 指到本机网关" },
+            { key: "codex", label: "Codex", state: "warn", detail: "未配置 base_url", impact: "Codex 会走默认官方地址，不经过本机反代" }
+          ] },
+          { key: "tokens", label: "占位 token", note: "客户端读取的环境变量", state: "warn", items: [
+            { key: "env:AUTOCLAW_LOCAL_KEY", label: "AUTOCLAW_LOCAL_KEY（AutoClaw）", state: "ok", detail: "已设置", impact: "" },
+            { key: "env:WB_LOCAL_KEY", label: "WB_LOCAL_KEY（WorkBuddy）", state: "ok", detail: "已设置", impact: "" },
+            { key: "env:QODER_LOCAL_KEY", label: "QODER_LOCAL_KEY（Qoder）", state: "ok", detail: "已设置", impact: "" },
+            { key: "env:DOUBAO_LOCAL_KEY", label: "DOUBAO_LOCAL_KEY（DoubaoWork）", state: "warn", detail: "未设置，回退默认占位值 doubao-local-key", impact: "DSH 用 apiKeyEnv 读取；用户环境里缺失时请求可能被拒" }
+          ] }
+        ]
+      };
+    }
+    if (name === "agent_setup_status") {
+      const dshDone = !!demoOnboardApplied.dsh;
+      const rows = [
+        { key: "dsh", label: "DSH", state: dshDone ? "ok" : "warn", action: "apply", exists: true,
+          path: "C:\\Users\\<user>\\AppData\\Roaming\\dsh-desktop\\harness\\profiles\\web\\cordis.patch.yml",
+          detail: dshDone ? "3 个本地 provider 已就绪" : "缺少 qoder provider（可自动补）" },
+        { key: "zcode", label: "ZCode", state: "ok", action: "apply", exists: true,
+          path: "C:\\Users\\<user>\\.zcode\\v2\\provider_config.json",
+          detail: "4/4 个本地 provider 已就绪" },
+        { key: "claude", label: "Claude Code", state: "warn", action: "snippet", exists: true,
+          path: "C:\\Users\\<user>\\.claude\\settings.json",
+          detail: "当前直连 api.deepseek.com" },
+        { key: "codex", label: "Codex", state: "warn", action: "snippet", exists: true,
+          path: "C:\\Users\\<user>\\.codex\\config.toml",
+          detail: "未配置 base_url" },
+      ];
+      return { ok: true, need: rows.filter((r) => r.state !== "ok").length, rows };
+    }
+    if (name === "agent_setup_preview") {
+      const key = args && args[0];
+      if (key === "dsh") {
+        return {
+          ok: true, manual: false,
+          target: "C:\\Users\\<user>\\AppData\\Roaming\\dsh-desktop\\harness\\profiles\\web\\cordis.patch.yml",
+          backup: "写入前备份为 cordis.patch.yml.bak-ai-proxy-<时间戳>",
+          missing: [], notes: [],
+          changes: [
+            { provider: "autoclaw", field: "timeoutMs", from: "300000", to: "420000" },
+          ],
+        };
+      }
+      if (key === "zcode") {
+        return {
+          ok: true, manual: false,
+          target: "C:\\Users\\<user>\\.zcode\\v2\\provider_config.json",
+          backup: "写入前备份为 provider_config.json.bak-ai-proxy-<时间戳>",
+          missing: [], notes: ["保留其他 provider；四家都按本地占位 token 重写"],
+          changes: [
+            { provider: "AutoClaw", id: "autoclaw-glm-provider", from: "(缺失)", to: "http://127.0.0.1:18766", action: "新增" },
+            { provider: "WorkBuddy", id: "workbuddy-provider", from: "(缺失)", to: "http://127.0.0.1:8787/v1", action: "新增" },
+            { provider: "Qoder CN", id: "qoder-openai-provider", from: "(缺失)", to: "http://127.0.0.1:8790/v1", action: "新增" },
+            { provider: "豆包工作", id: "doubao-openai-provider", from: "(缺失)", to: "http://127.0.0.1:18770/v1", action: "新增" },
+          ],
+        };
+      }
+      if (key === "claude") {
+        return {
+          ok: true, manual: true, target: "C:\\Users\\<user>\\.claude\\settings.json",
+          snippet: '{\n  "env": {\n    "ANTHROPIC_BASE_URL": "http://127.0.0.1:18766",\n    "ANTHROPIC_AUTH_TOKEN": "autoclaw-local",\n    "ANTHROPIC_MODEL": "GLM-5.3",\n    "ANTHROPIC_SMALL_FAST_MODEL": "GLM-5.3-Flash"\n  }\n}',
+          notes: ["写入 settings.json 的 env；模型名按网关 /v1/models 调整",
+                  "会覆盖现有 ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN；请自行备份"],
+        };
+      }
+      if (key === "codex") {
+        return {
+          ok: true, manual: true, target: "C:\\Users\\<user>\\.codex\\config.toml",
+          snippet: 'model_provider = "autoclaw"\nmodel = "GLM-5.3"\n\n[model_providers.autoclaw]\nname = "AutoClaw"\nbase_url = "http://127.0.0.1:18766/v1"\nenv_key = "AUTOCLAW_LOCAL_KEY"\nwire_api = "responses"',
+          notes: ["Codex 的 wire_api 只支持 responses；relay 已内置 /v1/responses 翻译层",
+                  "模型名按网关 /v1/models 调整；写前请自行备份 config.toml"],
+        };
+      }
+      return { ok: false, message: "未知客户端：" + key };
+    }
+    if (name === "agent_setup_apply") {
+      const key = args && args[0];
+      if (key === "dsh") {
+        return { ok: true, changed: 1, backup: "cordis.patch.yml.bak-ai-proxy-20261028-100000",
+                 message: "已修正 DSH 配置（1 处）" };
+      }
+      if (key === "zcode") {
+        return { ok: true, changed: 4, backup: "provider_config.json.bak-ai-proxy-20261028-100000",
+                 message: "已重新注册 ZCode 本地 provider" };
+      }
+      return { ok: false, manual: true, message: "Claude Code / Codex 只提供片段，不自动写入" };
+    }
+    if (name === "onboard_plan") {
+      return demoOnboardPlanData();
+    }
+    if (name === "onboard_start") {
+      const keys = (((args && args[0]) || [])).filter((k) => OB_CLIENT_LABEL[k]);
+      if (!keys.length) return { ok: false, message: "至少选择一个客户端" };
+      if (demoOnboardJob && demoOnboardJob.running) {
+        return { ok: false, message: "一键接入正在执行，请等它结束" };
+      }
+      demoOnboardJob = demoOnboardNewJob(keys);
+      return { ok: true, job: demoOnboardJob.id, clients: keys };
+    }
+    if (name === "onboard_status") {
+      if (!demoOnboardJob) {
+        return { ok: true, job: { id: 0, running: false, done: false, ok: false,
+          clients: [], steps: [], result: null, message: "", started: 0,
+          elapsed: 0, updated: 0 } };
+      }
+      demoOnboardAdvance();
+      return { ok: true, job: JSON.parse(JSON.stringify(demoOnboardJob)) };
+    }
+    if (name === "client_add") {
+      const n = DEMO_APPS.filter((x) => x.custom).length + 1;
+      DEMO_APPS.push({ key: "custom-" + n, label: "示例应用 " + n, exists: true,
+                       path: "<apps>\\Demo" + n + "\\Demo.exe", custom: true });
+      return { ok: true, message: "已添加 示例应用 " + n };
+    }
+    if (name === "client_remove") {
+      const key = args && args[0];
+      const i = DEMO_APPS.findIndex((x) => x.key === key && x.custom);
+      if (i < 0) return { ok: false, message: "内置客户端不能从面板移除" };
+      const label = DEMO_APPS[i].label;
+      DEMO_APPS.splice(i, 1);
+      return { ok: true, message: "已移除 " + label + "（文件未删除）" };
+    }
+    if (name === "agenthub_run") {
+      return { ok: true, dry_run: true, command: args && args[0],
+               output: "（演示模式）这里会显示 agent-hub.ps1 的真实输出。" };
+    }
+    if (name === "pick_folder") {
+      // 浏览器里没有原生文件夹对话框，demo 只回一个假路径
+      return { ok: true, path: "E:\\Demo\\Skills", demo: true };
+    }
+    if (name === "agenthub_set_store") {
+      return { ok: true, path: (args && args[0]) || "E:\\Demo\\Skills",
+               output: "（演示模式）已写入 config.json" };
+    }
+    if (name === "agenthub_migrate_store") {
+      return { ok: true, path: (args && args[0]) || "E:\\Demo\\Skills",
+               output: "（演示模式）已把技能搬到新位置并更新 config.json" };
+    }
+    if (name === "agenthub_dsh_status") {
+      return {
+        ok: true, root: "<workspace>", total: 2, ok_count: 1,
+        need_count: 1, skipped: 7, store: "<AgentHub>\\skills",
+        projects: [
+          { name: "autoclaw-switch", path: "<engine>",
+            dsh: "<engine>\\.dsh\\skills",
+            state: "ok", target: "<AgentHub>\\skills", exists: true },
+          { name: "workbuddy-zcode-proxy", path: "<workspace>\\workbuddy-zcode-proxy",
+            dsh: "<workspace>\\workbuddy-zcode-proxy\\.dsh\\skills",
+            state: "missing", target: "", exists: false },
+        ],
+      };
+    }
+    if (name === "agenthub_scan_projects" || name === "agenthub_link_dsh") {
+      return { ok: true, applied: args && args[0],
+               output: "（演示模式）这里会显示 agent-hub.ps1 的真实输出。" };
+    }
+    if (name === "usage") {
+      // 浏览器 ?demo=1 预览用假数据，避免「今日消耗」一直停在加载中
+      return { ok: true, usage: {
+        auto: { requests: 128, in: 40210, out: 8812 },
+        wb: { requests: 44, chars: 152000 },
+        qoder: { requests: 91, in: 31200, out: 6400, cache_pct: 42 },
+        doubao: { requests: 17, chars: 41000 },
+        dsh: { available: true, requests: 260, in: 1200000, out: 88000,
+          cache_read: 640000, note: "示例数据：经本地网关的部分已计入上方各网关卡，勿重复相加。",
+          via_gateway: { providers: ["deepseek"], requests: 180, in: 900000, out: 61000, cache_read: 500000 },
+          direct: { providers: ["aliyun"], requests: 80, in: 300000, out: 27000, cache_read: 140000 },
+          by_provider: [
+            { provider: "deepseek", requests: 180, in: 900000, out: 61000,
+              cache_read: 500000, models: ["deepseek-v4.1-flash"], via_gateway: true, gateway_key: "wb" },
+            { provider: "aliyun", requests: 80, in: 300000, out: 27000,
+              cache_read: 140000, models: ["qwen3-coder"], via_gateway: false, gateway_key: null }
+          ] }
+      } };
+    }
+    if (name === "status") {
+      return {
+        providers: demoProviders, apps: DEMO_APPS, busy: "", busy_name: "",
+        closing: demoClosing.slice(),
+        logs: demoLogs, updated: Date.now() / 1000
+      };
+    }
+    if (name === "toggle") {
+      const p = demoProviders.find((x) => x.key === args[0]);
+      if (!p) return { ok: false, message: "未知网关" };
+      p.running = !p.running;
+      p.pid = p.running ? Math.floor(10000 + Math.random() * 80000) : null;
+      p.latency_ms = p.running ? Math.floor(3 + Math.random() * 15) : null;
+      p.note = p.running ? "健康检查通过" : "端口未监听";
+      demoLogs.push({
+        id: demoId++,
+        t: new Date().toLocaleTimeString("zh-CN", { hour12: false }),
+        text: (p.running ? "启动 " : "停止 ") + p.name + "：" + (p.running ? "已启动" : "已停止"),
+        level: "ok"
+      });
+      return { ok: true, message: (p.running ? "已启动 " : "已停止 ") + p.name };
+    }
+    if (name === "start_all" || name === "stop_all") {
+      const on = name === "start_all";
+      demoProviders.forEach((p) => {
+        p.running = on;
+        p.pid = on ? Math.floor(10000 + Math.random() * 80000) : null;
+        p.latency_ms = on ? Math.floor(3 + Math.random() * 15) : null;
+        p.note = on ? "健康检查通过" : "端口未监听";
+      });
+      demoLogs.push({
+        id: demoId++,
+        t: new Date().toLocaleTimeString("zh-CN", { hour12: false }),
+        text: on ? "已开始启动全部网关" : "已开始停止全部网关",
+        level: "info"
+      });
+      return { ok: true, message: on ? "已开始启动全部网关" : "已开始停止全部网关" };
+    }
+    if (name === "open_app") {
+      const app = DEMO_APPS.find((x) => x.key === args[0]);
+      const label = app ? app.label : "应用";
+      demoLogs.push({
+        id: demoId++,
+        t: new Date().toLocaleTimeString("zh-CN", { hour12: false }),
+        text: "已打开 " + label,
+        level: "ok"
+      });
+      return { ok: true, message: "已打开 " + label };
+    }
+    if (name === "close_app") {
+      const key = args[0];
+      const app = DEMO_APPS.find((x) => x.key === key);
+      const label = app ? app.label : "应用";
+      if (!demoClosing.includes(key)) {
+        demoClosing.push(key);
+        setTimeout(() => {
+          demoClosing = demoClosing.filter((k) => k !== key);
+          demoLogs.push({
+            id: demoId++,
+            t: new Date().toLocaleTimeString("zh-CN", { hour12: false }),
+            text: "已关闭 " + label,
+            level: "ok"
+          });
+        }, 2600);
+      }
+      return { ok: true, message: "正在关闭 " + label + "…" };
+    }
+    if (name === "open_dashboard") return { ok: true, message: "已打开 Qoder 面板" };
+    if (name === "qoder_scan_desktop") {
+      return {
+        ok: true, current_realm: demoQoderRealm,
+        current_realm_name: demoQoderRealm === "intl" ? "国际版" : "国内版",
+        candidates: [
+          { pick_key: "cn::demo-cn", realm: "cn", realm_name: "国内版", kind: "app",
+            file: "auth.v1.dat", nickname: "Demo-国内号", uid: "u-cn", valid: true,
+            readable: true, in_pool: true, expires_text: "2026-11-24", error: "" },
+          { pick_key: "intl::demo-intl", realm: "intl", realm_name: "国际版", kind: "app",
+            file: "auth.v1.dat", nickname: "Demo-国际号", uid: "u-intl", valid: true,
+            readable: true, in_pool: demoQoderImported, expires_text: "2026-11-26", error: "" },
+        ],
+        message: "扫描到 2 个登录态",
+      };
+    }
+    if (name === "qoder_import_desktop") {
+      demoQoderImported = true;
+      return { ok: true, imported: [], errors: [], message: "已导入（演示）" };
+    }
+    if (name === "qoder_set_realm") {
+      const realm = args[0];
+      demoQoderRealm = realm;
+      return { ok: true, current_realm: realm,
+               current_realm_name: realm === "intl" ? "国际版" : "国内版",
+               message: "出口已切到" + (realm === "intl" ? "国际版" : "国内版") + "（演示）" };
+    }
+    if (name === "gateway_detail") {
+      const key = args[0];
+      if (key === "auto") {
+        return { ok: true, kind: "autoclaw", accounts: [
+          { name: "Demo-A", uid: "u-001", points: 1280, expiring: 120, is_live: true },
+          { name: "Demo-B", uid: "u-002", points: 540, expiring: 0, is_live: false }
+        ] };
+      }
+      if (key === "qoder") {
+        return {
+          ok: true, kind: "qoder", current_realm: demoQoderRealm,
+          current_realm_name: demoQoderRealm === "intl" ? "国际版" : "国内版",
+          accounts: [
+            { uid: "u-cn", name: "Demo-国内号", realm: "cn", realm_name: "国内版",
+              domain: "qoder.com.cn", plan: "Pro Trial", remain: 351, size: 600,
+              usage_pct: 0.42, credits_expires_text: "2026-11-08",
+              login_expires_text: "2026-11-24", enabled: true, source: "desktop",
+              can_checkin: true, last_checkin: "2026-10-27 10:34", in_cooldown: false,
+              cooldown_for: "", last_error: "", has_pat: false },
+            { uid: "u-intl", name: "Demo-国际号", realm: "intl", realm_name: "国际版",
+              domain: "qoder.com", plan: "Free", remain: 120, size: 500,
+              usage_pct: 0.76, credits_expires_text: "2026-11-26",
+              login_expires_text: "2026-11-26", enabled: true, source: "desktop",
+              can_checkin: false, last_checkin: "", in_cooldown: false,
+              cooldown_for: "", last_error: "", has_pat: false },
+          ],
+          realms: [
+            { key: "cn", name: "国内版", count: 1, enabled: 1, remain: 351, has_remain: true },
+            { key: "intl", name: "国际版", count: 1, enabled: 1, remain: 120, has_remain: true },
+          ],
+          message: "共 2 个账号（国内版 1 / 国际版 1）",
+        };
+      }
+      const map = {
+        wb: { platform: "workbuddy", status: "pending", today_checked_in: false, streak_days: 3,
+              today_credit: 0, total_credits: 1820, end_time: "2026-11-30" },
+        doubao: { platform: "doubao", status: "already", today_checked_in: true, streak_days: 12,
+              today_credit: 50, total_credits: 9640, end_time: "2026-12-15" }
+      };
+      return { ok: true, kind: "daily", summary: map[key] || {} };
+    }
+    if (name === "checkin") {
+      const key = args[0];
+      demoLogs.push({
+        id: demoId++,
+        t: new Date().toLocaleTimeString("zh-CN", { hour12: false }),
+        text: "签到 " + key + "：演示成功",
+        level: "ok"
+      });
+      return { ok: true, message: "签到 " + key + " 成功（演示）" };
+    }
+    if (name === "checkin_all") {
+      demoLogs.push({
+        id: demoId++,
+        t: new Date().toLocaleTimeString("zh-CN", { hour12: false }),
+        text: "签到全部（WB / 豆包 / AutoClaw）：演示成功",
+        level: "ok"
+      });
+      return { ok: true, message: "已全部签到（演示）" };
+    }
+    return { ok: true, message: "demo" };
+  }
+})();
+</script>
+</body>
+</html>

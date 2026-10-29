@@ -1,0 +1,427 @@
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+
+#pragma warning disable 162
+
+[assembly: System.Reflection.AssemblyTitle("__TITLE__")]
+[assembly: System.Reflection.AssemblyDescription("__DESC__")]
+[assembly: System.Reflection.AssemblyProduct("__PRODUCT__")]
+[assembly: System.Reflection.AssemblyCompany("local")]
+[assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.0.0.0")]
+
+internal static class Launcher
+{
+    private const string Mode = "__MODE__";
+    private const string AppTitle = "__TITLE__";
+    private const string DefaultRoot = @"__ROOT__";
+    private const string EntryScript = "__SCRIPT__";
+
+    [DllImport("kernel32.dll")]
+    private static extern bool SetConsoleOutputCP(uint codePage);
+
+    [DllImport("kernel32.dll")]
+    private static extern bool SetConsoleCP(uint codePage);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
+
+    private static int Main(string[] args)
+    {
+        string root = FindRoot();
+        switch (Mode)
+        {
+            case "panel":
+                return LaunchPanel(root);
+            case "switch":
+                if (args.Length > 0 && IsMenuArg(args[0]))
+                    return OpenConsoleMenu(root);
+                return LaunchPanel(root);
+            case "checkin":
+                return RunPythonConsole(root, EntryScript, args, true);
+            case "status":
+                return RunPythonConsole(root, EntryScript, WithStatus(args), false);
+            case "installtask":
+                return RunPowerShellScript(root, EntryScript, new string[0]);
+            case "agenthub":
+                return RunAgentHub(root, args);
+            default:
+                Error("未知启动模式：" + Mode);
+                return 2;
+        }
+    }
+
+    private static int LaunchPanel(string root)
+    {
+        string script = Path.Combine(root, "gateway_ui.py");
+        string python = PythonPath(false);
+        if (!File.Exists(script))
+        {
+            Error("找不到面板脚本：\n" + script);
+            return 2;
+        }
+        if (!File.Exists(python))
+        {
+            Error("找不到 Python：\n" + python + "\n请安装 Python 3（加入 PATH 或仓库 .venv），或用 AI_PROXY_PYTHON 指定完整路径。");
+            return 2;
+        }
+        if (!HasWebview(python))
+            return OpenConsoleMenu(root);
+
+        try
+        {
+            ProcessStartInfo psi = new ProcessStartInfo(PythonPath(true), Quote(script));
+            psi.WorkingDirectory = root;
+            psi.UseShellExecute = false;
+            psi.CreateNoWindow = true;
+            Process.Start(psi);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Error("启动面板失败：\n" + ex.Message);
+            return 1;
+        }
+    }
+
+    private static int OpenConsoleMenu(string root)
+    {
+        string python = PythonPath(false);
+        string script = Path.Combine(root, "ai_hub.py");
+        if (!File.Exists(script) || !File.Exists(python))
+        {
+            Error("找不到命令行开关脚本或 Python：\n" + script);
+            return 2;
+        }
+        try
+        {
+            // GUI 子系统没有控制台，交给 cmd 新开一个窗口，退出后停住看结果。
+            string inner = "chcp 65001 >nul & title " + AppTitle + " & "
+                + Quote(python) + " " + Quote(script) + " menu & echo. & pause";
+            ProcessStartInfo psi = new ProcessStartInfo("cmd.exe", "/c " + inner);
+            psi.WorkingDirectory = root;
+            psi.UseShellExecute = true;
+            psi.WindowStyle = ProcessWindowStyle.Normal;
+            Process.Start(psi);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Error("启动命令行菜单失败：\n" + ex.Message);
+            return 1;
+        }
+    }
+
+    private static bool HasWebview(string python)
+    {
+        try
+        {
+            ProcessStartInfo psi = new ProcessStartInfo(python, "-c \"import webview\"");
+            psi.UseShellExecute = false;
+            psi.CreateNoWindow = true;
+            psi.RedirectStandardOutput = true;
+            psi.RedirectStandardError = true;
+            using (Process p = Process.Start(psi))
+            {
+                if (!p.WaitForExit(20000))
+                {
+                    try { p.Kill(); } catch { }
+                    return false;
+                }
+                return p.ExitCode == 0;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static int RunPythonConsole(string root, string scriptName, string[] args, bool showCheckinResult)
+    {
+        SetConsoleUtf8();
+        Console.Title = AppTitle;
+        string script = Path.Combine(root, scriptName);
+        string python = PythonPath(false);
+        if (!File.Exists(script))
+        {
+            Console.WriteLine("[错误] 找不到脚本：" + script);
+            Pause();
+            return 2;
+        }
+        if (!File.Exists(python))
+        {
+            Console.WriteLine("[错误] 找不到 Python：" + python);
+            Pause();
+            return 2;
+        }
+
+        int rc;
+        try
+        {
+            rc = RunProcess(python, Quote(script) + " " + JoinArgs(args), root);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[错误] 启动失败：" + ex.Message);
+            Pause();
+            return 1;
+        }
+
+        Console.WriteLine();
+        if (showCheckinResult)
+        {
+            if (rc == 0)
+                Console.WriteLine("已完成。日志目录：" + Path.Combine(root, "logs"));
+            else
+                Console.WriteLine("有失败项，请查看上方输出或 logs 目录。");
+        }
+        Pause();
+        return rc;
+    }
+
+    private static int RunPowerShellScript(string root, string scriptName, string[] args)
+    {
+        SetConsoleUtf8();
+        Console.Title = AppTitle;
+        string script = Path.Combine(root, scriptName);
+        if (!File.Exists(script))
+        {
+            Console.WriteLine("[错误] 找不到脚本：" + script);
+            Pause();
+            return 2;
+        }
+        int rc;
+        try
+        {
+            string psArgs = "-NoProfile -ExecutionPolicy Bypass -File " + Quote(script);
+            if (args.Length > 0)
+                psArgs += " " + JoinArgs(args);
+            rc = RunProcess(PowerShellPath(), psArgs, root);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[错误] 启动失败：" + ex.Message);
+            Pause();
+            return 1;
+        }
+        Pause();
+        return rc;
+    }
+
+    private static int RunAgentHub(string root, string[] args)
+    {
+        SetConsoleUtf8();
+        Console.Title = AppTitle;
+        string script = Path.Combine(root, EntryScript);
+        if (!File.Exists(script))
+        {
+            Console.WriteLine("找不到 agent-hub.ps1：" + script);
+            Pause();
+            return 1;
+        }
+        bool noArgs = args.Length == 0;
+        string psArgs = "-NoProfile -ExecutionPolicy Bypass -File " + Quote(script);
+        psArgs += " " + (noArgs ? "help" : JoinArgs(args));
+        int rc;
+        try
+        {
+            rc = RunProcess(PowerShellPath(), psArgs, root);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[错误] 启动失败：" + ex.Message);
+            Pause();
+            return 1;
+        }
+        if (noArgs)
+        {
+            Pause();
+            return 0;
+        }
+        return rc;
+    }
+
+    private static int RunProcess(string fileName, string arguments, string workingDirectory)
+    {
+        ProcessStartInfo psi = new ProcessStartInfo(fileName, arguments);
+        psi.WorkingDirectory = workingDirectory;
+        psi.UseShellExecute = false;
+        using (Process p = Process.Start(psi))
+        {
+            p.WaitForExit();
+            return p.ExitCode;
+        }
+    }
+
+    private static string FindRoot()
+    {
+        string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+        if (exeDir.EndsWith("\\"))
+            exeDir = exeDir.Substring(0, exeDir.Length - 1);
+        if (File.Exists(Path.Combine(exeDir, EntryScript)))
+            return exeDir;
+        if (File.Exists(Path.Combine(DefaultRoot, EntryScript)))
+            return DefaultRoot;
+        return exeDir;
+    }
+
+    private static string PythonPath(bool windowed)
+    {
+        string name = windowed ? "pythonw.exe" : "python.exe";
+
+        // 1) 显式指定：AI_PROXY_PYTHON 指向 python.exe / pythonw.exe
+        string envPy = Environment.GetEnvironmentVariable("AI_PROXY_PYTHON");
+        if (!string.IsNullOrEmpty(envPy))
+        {
+            string sibling = Path.Combine(Path.GetDirectoryName(envPy), name);
+            if (File.Exists(sibling))
+                return sibling;
+            if (File.Exists(envPy))
+                return envPy;
+        }
+
+        // 2) 启动器 / 仓库旁边的虚拟环境
+        string[] roots = { AppDomain.CurrentDomain.BaseDirectory, DefaultRoot };
+        foreach (string root in roots)
+        {
+            foreach (string venv in new string[] { ".venv", "venv" })
+            {
+                string candidate = Path.Combine(root, venv, "Scripts", name);
+                if (File.Exists(candidate))
+                    return candidate;
+            }
+        }
+
+        // 3) PATH
+        string fromPath = FindOnPath(name);
+        return fromPath != null ? fromPath : name;
+    }
+
+    private static string FindOnPath(string fileName)
+    {
+        string path = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrEmpty(path))
+            return null;
+        string[] parts = path.Split(';');
+        for (int i = 0; i < parts.Length; i++)
+        {
+            string dir = parts[i].Trim().Trim('"');
+            if (dir.Length == 0)
+                continue;
+            try
+            {
+                string candidate = Path.Combine(dir, fileName);
+                if (File.Exists(candidate))
+                    return candidate;
+            }
+            catch { }
+        }
+        return null;
+    }
+
+    private static string PowerShellPath()
+    {
+        string ps = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
+            @"WindowsPowerShell\v1.0\powershell.exe");
+        if (File.Exists(ps))
+            return ps;
+        return "powershell.exe";
+    }
+
+    private static bool IsMenuArg(string value)
+    {
+        return string.Equals(value, "menu", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "/menu", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "--menu", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string[] WithStatus(string[] args)
+    {
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (string.Equals(args[i], "--status", StringComparison.OrdinalIgnoreCase))
+                return args;
+        }
+        string[] result = new string[args.Length + 1];
+        result[0] = "--status";
+        Array.Copy(args, 0, result, 1, args.Length);
+        return result;
+    }
+
+    private static string JoinArgs(string[] args)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (i > 0)
+                sb.Append(' ');
+            sb.Append(Quote(args[i]));
+        }
+        return sb.ToString();
+    }
+
+    // Windows 命令行参数转义（CommandLineToArgvW 规则），保证含空格/引号的参数原样送达。
+    private static string Quote(string value)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.Append('"');
+        int backslashes = 0;
+        foreach (char c in value)
+        {
+            if (c == '\\')
+            {
+                backslashes++;
+            }
+            else if (c == '"')
+            {
+                sb.Append('\\', backslashes * 2 + 1);
+                sb.Append('"');
+                backslashes = 0;
+            }
+            else
+            {
+                if (backslashes > 0)
+                {
+                    sb.Append('\\', backslashes);
+                    backslashes = 0;
+                }
+                sb.Append(c);
+            }
+        }
+        if (backslashes > 0)
+            sb.Append('\\', backslashes * 2);
+        sb.Append('"');
+        return sb.ToString();
+    }
+
+    private static void SetConsoleUtf8()
+    {
+        try
+        {
+            SetConsoleOutputCP(65001);
+            SetConsoleCP(65001);
+        }
+        catch { }
+    }
+
+    private static void Pause()
+    {
+        try
+        {
+            if (Console.IsInputRedirected)
+                return;
+        }
+        catch { }
+        Console.WriteLine("按任意键继续...");
+        try { Console.ReadKey(true); } catch { }
+    }
+
+    private static void Error(string message)
+    {
+        MessageBoxW(IntPtr.Zero, message, AppTitle, 0x10);
+    }
+}

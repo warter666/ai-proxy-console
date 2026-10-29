@@ -1,0 +1,20 @@
+# 统一换行：文本文件入库用 LF，检出时按平台转换
+* text=auto
+
+# Windows 批处理必须保持 CRLF，否则 cmd 解析可能出错
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 脚本与文档用 LF
+*.py   text eol=lf
+*.js   text eol=lf
+*.mjs  text eol=lf
+*.html text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.json text eol=lf
+
+# 二进制资源
+*.png binary
+*.ico binary

@@ -1,0 +1,13 @@
+# AI Proxy Console 控制台依赖（Windows 10/11，Python 3.10+）
+#   pip install -r requirements.txt
+# 三路引擎（AutoClaw / Qoder / 豆包）的依赖在 autoclaw-switch 仓库；
+# WorkBuddy 适配器（workbuddy-proxy.js）只用 Node 内置模块，无需 npm install。
+
+# 桌面面板：Windows 走系统 Edge WebView2
+pywebview>=5.0
+
+# DSH 会话文件解压与统计
+zstandard>=0.21
+
+# WorkBuddy 密钥信封 / AutoClaw 存档的 AES-GCM 加解密
+cryptography>=41
