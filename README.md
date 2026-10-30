@@ -33,7 +33,7 @@ ai-proxy-console/
 │  ├─ doubao/      # 豆包辅助：sync / session / switch / 只读探针（自成一簇）
 │  ├─ agent-hub/   # skill_import.py（技能包导入）
 │  └─ compat/      # all_in_one.py（旧 bat 兼容薄壳，转发 ai_hub.py）
-├─ assets/         # 图标
+├─ assets/icons/   # 客户端油画图标（256px 源图 + ui/ 内嵌版）；pig.png/ico 是小猪
 └─ _legacy/        # 已归档旧入口（gitignore）
 ```
 
@@ -272,6 +272,9 @@ DSH 走 `qoder/deepseek-flash` 时若出现「回答一半输出 `[assistant 请
 - 占位 token（一键复制）与启动/停止键；Qoder 运行时额外有“面板”按钮
 - 右上角「一键接入」向导：逐步显示补 token / 启动网关 / 写配置 / 复检的进度与结果
 - 「客户端」区一键打开 Qoder / DSH / ZCode / WorkBuddy / AutoClaw / 豆包工作
+- 客户端图标和标题旁的小猪都是油画风格（客户端另含一个自定义通用图标）；面板用
+  `html` 字符串加载，图标以 data URI 内嵌，换图后运行 `python tools/pack_app_icons.py`
+  重新打包；`assets/pig.ico` 同时用作窗口 / EXE 图标
 - 底部深色运行日志（启动/停止过程、错误原因）
 
 客户端路径不在仓库里：`gw_specs.py` 只保留可移植候选（如 Qoder 的 `%LOCALAPPDATA%` 路径），
