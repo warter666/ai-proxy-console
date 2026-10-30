@@ -1,0 +1,152 @@
+[
+ {
+  "key": "flash",
+  "display_name": "标准",
+  "description": "极速全能，秒杀日常任务",
+  "i18n": {
+   "display_name": {
+    "en": "Standard",
+    "zh": "标准"
+   },
+   "description": {
+    "en": "Cost efficient for everyday tasks",
+    "zh": "极速全能，秒杀日常任务"
+   }
+  },
+  "is_vl": true,
+  "is_reasoning": true,
+  "format": "openai",
+  "source": "system",
+  "enable": true,
+  "is_default": true,
+  "is_new": null,
+  "price_factor": 0.1,
+  "original_price_factor": null,
+  "order": null,
+  "max_input_tokens": 1000000,
+  "gray_tags": null,
+  "minimal_version": null,
+  "strategies": null,
+  "is_sensitive": null,
+  "tags": null,
+  "icon": "https://img.alicdn.com/imgextra/i3/O1CN01fdkM1z1wLnCvXab0P_!!6000000006292-55-tps-24-24.svg",
+  "is_free": null,
+  "is_editable": null,
+  "user_type_configs": null,
+  "context_config": {
+   "1M": {
+    "token_count": 1000000,
+    "is_default": true
+   },
+   "200K": {
+    "token_count": 200000
+   },
+   "400K": {
+    "token_count": 400000
+   }
+  },
+  "thinking_config": null,
+  "feature_switches": null,
+  "promotion": null
+ },
+ {
+  "key": "pro",
+  "display_name": "高级",
+  "description": "性能均衡，擅长复杂任务",
+  "i18n": {
+   "display_name": {
+    "en": "Pro",
+    "zh": "高级"
+   },
+   "description": {
+    "en": "Balanced performance for complex tasks",
+    "zh": "性能均衡，擅长复杂任务"
+   }
+  },
+  "is_vl": true,
+  "is_reasoning": true,
+  "format": "openai",
+  "source": "system",
+  "enable": true,
+  "is_default": false,
+  "is_new": null,
+  "price_factor": 1,
+  "original_price_factor": null,
+  "order": null,
+  "max_input_tokens": 1000000,
+  "gray_tags": null,
+  "minimal_version": null,
+  "strategies": null,
+  "is_sensitive": null,
+  "tags": null,
+  "icon": "https://img.alicdn.com/imgextra/i4/O1CN011jr9dw1yjGjzWTNcC_!!6000000006614-55-tps-24-24.svg",
+  "is_free": null,
+  "is_editable": null,
+  "user_type_configs": null,
+  "context_config": {
+   "1M": {
+    "token_count": 1000000,
+    "is_default": true
+   },
+   "200K": {
+    "token_count": 200000
+   },
+   "400K": {
+    "token_count": 400000
+   }
+  },
+  "thinking_config": null,
+  "feature_switches": null,
+  "promotion": null
+ },
+ {
+  "key": "qwen3.8-max-preview",
+  "display_name": "Qwen3.8-Max",
+  "description": "千问最强模型",
+  "i18n": {
+   "display_name": {
+    "en": "Qwen3.8-Max",
+    "zh": "Qwen3.8-Max"
+   },
+   "description": {
+    "en": "Qwen’s most capable model",
+    "zh": "千问最强模型"
+   }
+  },
+  "is_vl": true,
+  "is_reasoning": true,
+  "format": "openai",
+  "source": "system",
+  "enable": true,
+  "is_default": false,
+  "is_new": true,
+  "price_factor": 1.8,
+  "original_price_factor": null,
+  "order": null,
+  "max_input_tokens": 1000000,
+  "gray_tags": null,
+  "minimal_version": null,
+  "strategies": null,
+  "is_sensitive": null,
+  "tags": null,
+  "icon": "https://img.alicdn.com/imgextra/i4/O1CN01qh4CF31oPtpub82mX_!!6000000005218-55-tps-24-24.svg",
+  "is_free": null,
+  "is_editable": null,
+  "user_type_configs": null,
+  "context_config": {
+   "1M": {
+    "token_count": 1000000,
+    "is_default": true
+   },
+   "200K": {
+    "token_count": 200000
+   },
+   "400K": {
+    "token_count": 400000
+   }
+  },
+  "thinking_config": null,
+  "feature_switches": null,
+  "promotion": null
+ }
+]

@@ -20,6 +20,13 @@ clients.json
 # 内置客户端的本机安装路径覆盖（格式见 clients.example.json）
 clients.local.json
 
+# 本机面板设置（引擎仓库 / 账号目录等本机路径）
+config/panel.local.json
+
+# 内置引擎的账号数据（导出的凭据）与回滚归档，绝不入库
+engine/accounts/
+engine/qoder/accounts/
+
 # ============================================================
 # 进程/内存读取工具 —— 仅限本机自用，不入库
 #   这些脚本会读取其他进程的内存与环境变量，

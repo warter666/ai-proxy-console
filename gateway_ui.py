@@ -381,20 +381,27 @@ def _activate_app_windows(pids):
 def _launch_app(path, args=""):
     """按资源管理器双击的方式启动；cwd 以安装目录为基准。args 仅自定义客户端使用。"""
     workdir = os.path.dirname(path)
-    if os.name == "nt":
-        shell32 = ctypes.WinDLL("shell32", use_last_error=True)
-        shell32.ShellExecuteW.argtypes = [
-            ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_wchar_p,
-            ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_int,
-        ]
-        shell32.ShellExecuteW.restype = ctypes.c_void_p
-        params = args.strip() or None
-        res = shell32.ShellExecuteW(None, "open", path, params, workdir, 1)
-        if (res or 0) <= 32:
-            raise OSError("ShellExecute 返回 %s" % res)
-        return
-    import shlex
-    subprocess.Popen([path] + shlex.split(args), cwd=workdir, close_fds=True)
+    # 从 Electron 宿主终端启动面板时会继承 ELECTRON_RUN_AS_NODE，
+    # 子进程会以纯 Node 模式跑（无窗口、秒退），启动前临时摘掉。
+    node_mode = os.environ.pop("ELECTRON_RUN_AS_NODE", None)
+    try:
+        if os.name == "nt":
+            shell32 = ctypes.WinDLL("shell32", use_last_error=True)
+            shell32.ShellExecuteW.argtypes = [
+                ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_wchar_p,
+                ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_int,
+            ]
+            shell32.ShellExecuteW.restype = ctypes.c_void_p
+            params = args.strip() or None
+            res = shell32.ShellExecuteW(None, "open", path, params, workdir, 1)
+            if (res or 0) <= 32:
+                raise OSError("ShellExecute 返回 %s" % res)
+            return
+        import shlex
+        subprocess.Popen([path] + shlex.split(args), cwd=workdir, close_fds=True)
+    finally:
+        if node_mode is not None:
+            os.environ["ELECTRON_RUN_AS_NODE"] = node_mode
 
 
 def _open_app_worker(key, label, path, args=""):
@@ -956,7 +963,7 @@ def _run_checkin(keys):
                 pass
 
 
-# AutoClaw 账号管理 CLI（认领 / 导出池）。默认取引擎仓库（A_SWITCH_REPO / 相邻目录）。
+# AutoClaw 账号管理 CLI（认领 / 导出池）。默认取引擎仓库（内置 engine/ 或 A_SWITCH_REPO）。
 AUTOCLAW_SWITCH = Path(os.environ.get("AUTOCLAW_SWITCH")
                        or (hub.REPO / "a_switch.py"))
 

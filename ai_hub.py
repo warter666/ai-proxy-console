@@ -27,8 +27,14 @@ import sys
 import time
 from pathlib import Path
 
-REPO = Path(os.environ.get("A_SWITCH_REPO")
-            or Path(__file__).resolve().parent.parent / "autoclaw-switch")
+REPO, REPO_SOURCE = gw_specs.switch_repo_source()
+# 引擎账号目录：本机设置 aswitch_dir → 环境变量 ASWITCH_DIR → 引擎目录下 accounts/。
+# 数据含凭据，永不入库（accounts/ 已 gitignore），ASWITCH_DIR 可指到仓库外。
+_ASWITCH_DIR = gw_specs.local_settings().get("aswitch_dir")
+if _ASWITCH_DIR:
+    os.environ["ASWITCH_DIR"] = str(_ASWITCH_DIR)
+else:
+    os.environ.setdefault("ASWITCH_DIR", str(REPO / "accounts"))
 PROXY_DIR = Path(os.environ.get("WB_PROXY_DIR") or Path(__file__).resolve().parent)
 RELAY_PORT = int(os.environ.get("AUTOCLAW_RELAY_PORT") or 18766)
 WB_PORT = 8787
@@ -931,16 +937,19 @@ def cmd_start(targets):
                 say(f"    [warn] post_start 异常 {type(e).__name__}: {e}")
         say("")
     if GUI:
-        try:
-            # 用当前解释器同目录的 pythonw：PATH 上的 vendor python 没有 pywebview，GUI 会静默失败
-            pyw = Path(sys.executable).with_name("pythonw.exe")
-            if not pyw.is_file():
-                pyw = Path(sys.executable)
-            subprocess.Popen(f'cmd /c start "" /D "{REPO}" "{pyw}" a_switch_app.py', shell=True,
-                             creationflags=CREATE_NO_WINDOW)
-            say("A-SWITCH GUI 已拉起")
-        except Exception:
-            pass
+        if not (REPO / "a_switch_app.py").is_file():
+            say("[warn] 内置引擎不带 A-SWITCH 窗口，面板本身就是入口")
+        else:
+            try:
+                # 用当前解释器同目录的 pythonw：PATH 上的 vendor python 没有 pywebview，GUI 会静默失败
+                pyw = Path(sys.executable).with_name("pythonw.exe")
+                if not pyw.is_file():
+                    pyw = Path(sys.executable)
+                subprocess.Popen(f'cmd /c start "" /D "{REPO}" "{pyw}" a_switch_app.py', shell=True,
+                                 creationflags=CREATE_NO_WINDOW)
+                say("A-SWITCH GUI 已拉起")
+            except Exception:
+                pass
     say("=" * 62)
     fail = 0
     for name, ok, note in results:

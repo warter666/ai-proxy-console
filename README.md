@@ -8,10 +8,13 @@
 | **agent 用什么模型** | 本仓库（四路本地反代） | 网关启停 / 端口 / 占位 token / 健康度 / 配置接入 |
 | **agent 会什么** | `AgentHub`（可选，另一个仓库） | 只读检测 + 调它的脚本，不重复实现 |
 
-> **仓库边界**（2026-10-29 起独立成仓）：
-> - **本仓库** `ai-proxy-console`：面板、控制台、WorkBuddy 适配器、签到与接入脚本。
-> - **三路引擎**（AutoClaw / Qoder / 豆包）在独立的 `autoclaw-switch` 仓库，
->   用环境变量 `A_SWITCH_REPO` 指向本地克隆；未设置时按相邻目录 `..\autoclaw-switch` 探测。
+> **仓库边界**（2026-10-30 起引擎内置）：
+> - **本仓库** `ai-proxy-console`：面板、控制台、WorkBuddy 适配器、签到与接入脚本，
+>   以及内置引擎 `engine/`（AutoClaw / Qoder / 豆包 的 a_switch、relay、工具）。
+> - 面板默认直接用 `engine/`，**不再需要第二个仓库**；想换外部引擎时用环境变量
+>   `A_SWITCH_REPO` 或本机 `config/panel.local.json` 的 `aswitch_repo` 覆盖。
+> - 引擎账号数据默认在 `engine/accounts/`（已 gitignore）；可指到仓库外用
+>   `ASWITCH_DIR` 或 `config/panel.local.json` 的 `aswitch_dir`。
 > - **AgentHub** 是可选的共享底座（技能 / 记忆 / 项目规则），另有仓库；
 >   不装它也能单独使用本面板。
 > - 旧路径 `D:\Code\Projects\AgentHub\AI_Proxy` 只是指向本仓库的兼容 junction，
@@ -33,6 +36,7 @@ ai-proxy-console/
 │  ├─ doubao/      # 豆包辅助：sync / session / switch / 只读探针（自成一簇）
 │  ├─ agent-hub/   # skill_import.py（技能包导入）
 │  └─ compat/      # all_in_one.py（旧 bat 兼容薄壳，转发 ai_hub.py）
+├─ engine/         # 内置引擎快照：a_switch / relay / qoder / doubao（来源与改动见 engine/README.md）
 ├─ assets/icons/   # 客户端油画图标（256px 源图 + ui/ 内嵌版）；pig.png/ico 是小猪
 └─ _legacy/        # 已归档旧入口（gitignore）
 ```
@@ -43,11 +47,11 @@ ai-proxy-console/
 
 ## 从零搭建（新机器）
 
-本仓库只是控制台，四路网关还依赖本机已登录的客户端和引擎仓库：
+四路网关依赖本机已登录的客户端；引擎已内置在本仓库，不用另外克隆：
 
 1. **系统**：Windows 10/11，Python 3.10+，Node.js 22+（豆包同步用到全局 `WebSocket`），
    PowerShell 5.1。安装依赖：`pip install -r requirements.txt`。
-2. **克隆本仓库**（控制台）：
+2. **克隆本仓库**：
 
    ```bash
    git clone https://github.com/warter666/ai-proxy-console.git
@@ -55,19 +59,8 @@ ai-proxy-console/
    pip install -r requirements.txt
    ```
 
-3. **克隆引擎仓库 `autoclaw-switch`**（三路引擎 AutoClaw / Qoder / 豆包本体，独立仓库）。
-   它必须和本仓库**同级**（这样不设环境变量也能自动探测到），或设 `A_SWITCH_REPO` 指向它：
-
-   ```bash
-   # 在 ai-proxy-console 的同级目录执行（二选一）：
-   git clone https://github.com/warter666/autoclaw-switch.git
-
-   # 或者克隆到自定义位置后用环境变量声明：
-   git clone https://github.com/warter666/autoclaw-switch.git D:\my\autoclaw-switch
-   setx A_SWITCH_REPO "D:\my\autoclaw-switch"
-   ```
-
-   > 不设 `A_SWITCH_REPO` 时，控制台默认按 `..\autoclaw-switch` 探测（即本仓库的同级目录）。
+3. **引擎**：已内置 `engine/`（来源见 `engine/README.md`），不用另外克隆；
+   想换外部 `autoclaw-switch` 克隆时设 `A_SWITCH_REPO`，账号目录用 `ASWITCH_DIR` 指到仓库外。
 4. **登客户端**：AutoClaw / WorkBuddy / Qoder / 豆包，至少登录你要用的那几家。
    真实凭据只留在客户端和代理进程里，本仓库不含任何 key。
 5. **起面板**：`python gateway_ui.py`（或双击 `entry\AI反代面板.bat`）。打开后点右上角
@@ -77,7 +70,7 @@ ai-proxy-console/
 
 ### 一行快速启动
 
-满足“已克隆 ai-proxy-console 与 autoclaw-switch 到同级目录、已装 Python/Node 依赖、客户端已登录”后，
+满足“已克隆本仓库、已装 Python/Node 依赖、客户端已登录”后，
 直接用仓库根目录的一条命令拉起全部网关并打开面板：
 
 ```bash
@@ -90,12 +83,13 @@ cd ai-proxy-console && python ai_hub.py start && python gateway_ui.py
 
 | 变量 | 用途 | 默认 |
 |---|---|---|
-| `A_SWITCH_REPO` | 引擎仓库（AutoClaw / Qoder / 豆包） | `..\autoclaw-switch` |
+| `A_SWITCH_REPO` | 外部引擎仓库（AutoClaw / Qoder / 豆包） | 内置 `engine\` |
+| `ASWITCH_DIR` | 引擎账号数据目录（含凭据，勿入库） | `engine\accounts` |
+| `AUTOCLAW_SWITCH` | `a_switch.py` 完整路径 | 引擎仓库下 `a_switch.py` |
 | `AGENTHUB_DIR` | AgentHub 共享底座（可选） | `..\AgentHub` |
 | `AI_PROXY_PYTHON` | 启动器 / BAT 使用的 python.exe | 仓库 `.venv` → `venv` → PATH |
 | `DOUBAO_CONSUMER_EXE` | 消费版豆包客户端 | `clients.local.json` 的 `doubao_consumer` → 常见安装位置 |
 | `WB_PROXY_DIR` | WorkBuddy 适配器目录 | 本仓库 |
-| `AUTOCLAW_SWITCH` | `a_switch.py` 完整路径 | `A_SWITCH_REPO\a_switch.py` |
 
 > WorkBuddy 的令牌信封需要本机密钥（`wb-key-payload.json`）。生成密钥的
 > `scan_mem.py`（读取本机进程内存）**不随仓库分发**，请自行保留本地副本；

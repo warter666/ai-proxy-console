@@ -32,6 +32,8 @@
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 # 能力位：前端据此决定显示哪些按钮/行，不需要再写 p.key === "xxx"
 #   start_stop    可启停（所有网关都有）
 #   checkin       有每日签到
@@ -193,6 +195,49 @@ _apply_client_overrides()
 def local_overrides(key):
     """clients.local.json 里 key 的路径列表，也支持非网关条目（如 doubao_consumer）。"""
     return _load_client_overrides().get(str(key), ())
+
+
+# ---------------------------------------------------------------- 本机面板设置
+_SETTINGS_PATH = Path(__file__).resolve().parent / "config" / "panel.local.json"
+
+
+def local_settings():
+    """config/panel.local.json（已 gitignore）。缺失或损坏当空设置。"""
+    import json
+    try:
+        data = json.loads(_SETTINGS_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def set_local_setting(key, value):
+    import json
+    data = local_settings()
+    data[str(key)] = value
+    _SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _SETTINGS_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+                              encoding="utf-8")
+    return data
+
+
+def switch_repo_source():
+    """引擎仓库：面板设置 → A_SWITCH_REPO → 内置 engine/。
+
+    返回 (Path, source)，source 为 panel / env / bundled。
+    """
+    import os
+    saved = local_settings().get("aswitch_repo")
+    if saved:
+        return Path(str(saved)), "panel"
+    env = os.environ.get("A_SWITCH_REPO")
+    if env:
+        return Path(env), "env"
+    return Path(__file__).resolve().parent / "engine", "bundled"
+
+
+def switch_repo():
+    return switch_repo_source()[0]
 
 
 # 面板展示顺序（只放有 start_stop 的）

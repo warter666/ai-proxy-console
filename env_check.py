@@ -146,15 +146,14 @@ def _check_runtime():
 def _check_deps():
     items = []
     repo = Path(hub.REPO)
-    from_env = bool(os.environ.get("A_SWITCH_REPO"))
+    source = {"panel": "（本机设置）", "env": "（A_SWITCH_REPO）"}.get(
+        getattr(hub, "REPO_SOURCE", ""), "（内置）")
     if repo.is_dir():
-        items.append(_item(
-            "repo", "反代仓库", "ok",
-            "%s%s" % (repo, "（A_SWITCH_REPO）" if from_env else "（默认路径）")))
+        items.append(_item("repo", "引擎仓库", "ok", "%s%s" % (repo, source)))
     else:
         items.append(_item(
-            "repo", "反代仓库", "fail", "未找到：%s" % repo,
-            "AutoClaw / Qoder / 豆包网关都从这里启动；设 A_SWITCH_REPO 指向实际仓库"))
+            "repo", "引擎仓库", "fail", "未找到：%s" % repo,
+            "内置 engine/ 缺失：重新拉取本仓库；或设 A_SWITCH_REPO 指向外部克隆"))
         return _group("deps", "网关依赖", "四个网关的源码与辅助脚本", items)
 
     items.append(_check_item(
